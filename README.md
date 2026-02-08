@@ -2,6 +2,8 @@
 
 Official VS Code Server in Docker with WebSocket support, full extension compatibility (including GitHub Copilot), based on Debian.
 
+WIP: Add opencode & openclaw serve,fix CORS to local server or proxy_pass addr.
+
 ## Quick Start
 
 ```bash
@@ -194,3 +196,4 @@ Access: `https://my-code-server.domain.com?tkn=yourtoken`
 ## Contributing
 
 Contributions are welcome!
+
