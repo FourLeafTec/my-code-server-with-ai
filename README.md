@@ -2,7 +2,7 @@
 
 Official VS Code Server in Docker with WebSocket support, full extension compatibility (including GitHub Copilot), based on Debian.
 
-WIP: Add opencode & openclaw serve,fix CORS to local server or proxy_pass addr.
+Features: VS Code Server + OpenCode AI + OpenClaw AI assistants, WebSocket support, process management with tini.
 
 ## Quick Start
 
@@ -105,6 +105,14 @@ docker run -d -p 8585:8585 \
 | `VERBOSE` | Enable verbose output | `false` |
 | `LOG_LEVEL` | Log level (trace, debug, info, warn, error, critical, off) | - |
 | `CLI_DATA_DIR` | CLI metadata directory | - |
+| `OPENCODE_PORT` | OpenCode server port | `4096` |
+| `OPENCODE_HOST` | OpenCode bind address | `0.0.0.0` |
+| `OPENCODE_SERVER_PASSWORD` | OpenCode web password (recommended) | - |
+| `OPENCODE_SERVER_USERNAME` | OpenCode web username | `opencode` |
+| `OPENCLAW_PORT` | OpenClaw gateway port | `18789` |
+| `OPENCLAW_HOST` | OpenClaw bind address | `0.0.0.0` |
+| `CLAW_GATEWAY_TOKEN` | OpenClaw gateway token (recommended) | - |
+| `LOG_RETENTION_DAYS` | Log retention period (days) | `3` |
 
 ### Docker Compose Variables
 
@@ -117,6 +125,10 @@ Use environment variables or `.env` file:
 | `TOKEN` | Authentication token | `sometoken` |
 | `PUID` | User ID | `1000` |
 | `PGID` | Group ID | `1000` |
+| `OPENCODE_HOST_PORT` | OpenCode host port | `4096` |
+| `OPENCODE_PORT` | OpenCode container port | `4096` |
+| `OPENCLAW_HOST_PORT` | OpenClaw host port | `18789` |
+| `OPENCLAW_PORT` | OpenClaw container port | `18789` |
 
 ### Custom UID/GID
 
@@ -126,6 +138,141 @@ To avoid permission issues with mounted volumes, the container supports dynamic 
 **With docker run:** Use `-e PUID=$(id -u) -e PGID=$(id -g)`
 
 The container will automatically adjust user permissions at startup.
+
+## AI Services (OpenCode & OpenClaw)
+
+This container includes pre-installed AI coding assistants that run as background services.
+
+### Available Services
+
+| Service | Description | Default Port | CLI Command |
+|---------|-------------|--------------|-------------|
+| **OpenCode** | AI coding assistant with TUI | `4096` | `opencode` |
+| **OpenClaw** | Personal AI assistant gateway | `18789` | `openclaw` |
+
+### Port Configuration
+
+Configure service ports via environment variables:
+
+```yaml
+# docker-compose.yml
+environment:
+  - OPENCODE_HOST=0.0.0.0        # OpenCode bind address
+  - OPENCODE_PORT=4096           # OpenCode server port
+  - OPENCLAW_HOST=0.0.0.0        # OpenClaw bind address
+  - OPENCLAW_PORT=18789          # OpenClaw gateway port
+  - LOG_RETENTION_DAYS=3         # Log retention period (optional)
+
+ports:
+  - "8585:8585"                  # VS Code Server
+  - "4096:4096"                  # OpenCode
+  - "18789:18789"                # OpenClaw
+```
+
+Or with `.env` file:
+```env
+OPENCODE_HOST=0.0.0.0
+OPENCODE_PORT=4096
+OPENCLAW_HOST=0.0.0.0
+OPENCLAW_PORT=18789
+OPENCODE_HOST_PORT=4096
+OPENCLAW_HOST_PORT=18789
+LOG_RETENTION_DAYS=3
+```
+
+### Authentication (Highly Recommended)
+
+**⚠️ Security Warning:** For production or network-accessible deployments, always enable authentication.
+
+**OpenCode Authentication (HTTP Basic Auth):**
+```yaml
+environment:
+  - OPENCODE_SERVER_USERNAME=admin       # Optional, default: opencode
+  - OPENCODE_SERVER_PASSWORD=your-secret-password
+```
+
+Access OpenCode web interface:
+- URL: `http://localhost:4096`
+- Username: `$OPENCODE_SERVER_USERNAME`
+- Password: `$OPENCODE_SERVER_PASSWORD`
+
+**OpenClaw Authentication (Token-based):**
+```yaml
+environment:
+  - CLAW_GATEWAY_TOKEN=your-secure-random-token
+```
+
+Generate a secure token:
+```bash
+openssl rand -hex 32
+```
+
+Access OpenClaw gateway:
+- Include token in API requests header or query parameter
+- Check OpenClaw docs for detailed authentication methods
+
+**Full example with authentication:**
+```yaml
+environment:
+  - TOKEN=vscode-secret-token
+  - OPENCODE_SERVER_PASSWORD=opencode-secret
+  - CLAW_GATEWAY_TOKEN=openclaw-secret-token
+```
+
+### Service Management Scripts
+
+**restart.sh** - Restart services without stopping the container:
+```bash
+# Restart all AI services
+/app/restart.sh
+
+# Restart specific service
+/app/restart.sh opencode
+/app/restart.sh openclaw
+```
+
+**update.sh** - Update services to latest version:
+```bash
+# Update all AI services
+/app/update.sh
+
+# Update specific service
+/app/update.sh opencode
+/app/update.sh openclaw
+```
+
+### Accessing Services
+
+- **OpenCode TUI**: Run `docker exec -it my-code-server opencode`
+- **OpenClaw Dashboard**: Visit `http://localhost:18789`
+- **Logs**: Check `~/.ai/opencode.log` and `~/.ai/openclaw.log`
+
+### Log Rotation
+
+Logs are automatically rotated daily with the following behavior:
+- Current log: `~/.ai/opencode.log` or `~/.ai/openclaw.log`
+- Rotated logs: `~/.ai/opencode.log.YYYYMMDD` or `~/.ai/openclaw.log.YYYYMMDD`
+- **Retention**: By default, logs older than 3 days are automatically deleted
+- **Customize retention**: Set `LOG_RETENTION_DAYS` environment variable (e.g., `LOG_RETENTION_DAYS=7`)
+
+View recent logs:
+```bash
+# View OpenCode logs
+docker exec my-code-server tail -f ~/.ai/opencode.log
+
+# View OpenClaw logs
+docker exec my-code-server tail -f ~/.ai/openclaw.log
+
+# List all log files
+docker exec my-code-server ls -la ~/.ai/
+```
+
+### Auto-Restart & Updates
+
+Services are monitored with `while true` loops that:
+- Auto-restart on crash (3-second delay)
+- Check for update/restart flags every 2 seconds
+- Apply updates before starting (if `.update` flag exists)
 
 ## Nginx Reverse Proxy Setup
 

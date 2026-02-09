@@ -119,6 +119,10 @@ if [ -n "$CLI_DATA_DIR" ]; then
   CMD="$CMD --cli-data-dir $CLI_DATA_DIR"
 fi
 
+# Start AI services in background
+echo "Starting AI services..."
+su - vscodeuser -c "/app/start_ai.sh"
+
 # Execute the final command as vscodeuser
 echo "Executing: $CMD (as vscodeuser)"
 exec su - vscodeuser -c "$CMD"
