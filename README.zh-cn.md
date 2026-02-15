@@ -8,8 +8,8 @@
 
 ```bash
 # 拉取镜像并运行
-docker pull ghcr.io/nerasse/my-code-server:main
-docker run -d -p 8585:8585 -e TOKEN=yourtoken ghcr.io/nerasse/my-code-server:main
+docker pull ghcr.io/FourLeafTec/my-code-server-with-ai:main
+docker run -d -p 8585:8585 -e TOKEN=yourtoken ghcr.io/FourLeafTec/my-code-server-with-ai:main
 
 # 或者用 docker-compose
 docker compose up -d
@@ -28,17 +28,17 @@ docker compose up -d
 ### 方案一：使用预构建镜像
 
 ```bash
-docker pull ghcr.io/nerasse/my-code-server:main
+docker pull ghcr.io/FourLeafTec/my-code-server-with-ai:main
 ```
 
 ### 方案二：本地构建
 
 ```bash
 # 推荐用 buildx
-docker buildx build -t my-code-server:main .
+docker buildx build -t my-code-server-with-ai:main .
 
 # 或者用传统方式
-docker build -t my-code-server:main .
+docker build -t my-code-server-with-ai:main .
 ```
 
 ## 使用方法
@@ -73,7 +73,7 @@ volumes:
 docker run -d -p 8585:8585 \
   -e PORT=8585 \
   -e TOKEN=sometoken \
-  my-code-server:main
+  my-code-server-with-ai:main
 ```
 
 **带数据卷和自定义用户ID：**
@@ -84,7 +84,7 @@ docker run -d -p 8585:8585 \
   -e PUID=$(id -u) \
   -e PGID=$(id -g) \
   -v /path/to/your/data:/home/vscodeuser \
-  my-code-server:main
+  my-code-server-with-ai:main
 ```
 
 ## 配置选项
@@ -243,7 +243,7 @@ environment:
 
 ### 使用服务
 
-- **OpenCode TUI**：运行 `docker exec -it my-code-server opencode`
+- **OpenCode TUI**：运行 `docker exec -it my-code-server-with-ai opencode`
 - **OpenClaw 面板**：访问 `http://localhost:18789`
 - **日志**：查看 `~/.ai/opencode.log` 和 `~/.ai/openclaw.log`
 
@@ -258,13 +258,13 @@ environment:
 查看日志：
 ```bash
 # 查看 OpenCode 日志
-docker exec my-code-server tail -f ~/.ai/opencode.log
+docker exec my-code-server-with-ai tail -f ~/.ai/opencode.log
 
 # 查看 OpenClaw 日志
-docker exec my-code-server tail -f ~/.ai/openclaw.log
+docker exec my-code-server-with-ai tail -f ~/.ai/openclaw.log
 
 # 列出所有日志文件
-docker exec my-code-server ls -la ~/.ai/
+docker exec my-code-server-with-ai ls -la ~/.ai/
 ```
 
 ### 自动重启和更新
@@ -278,7 +278,7 @@ docker exec my-code-server ls -la ~/.ai/
 
 ### 网络配置
 
-- 容器名：`my-code-server`
+- 容器名：`my-code-server-with-ai`
 - 网络：`vscode-server-network`
 
 ### HTTP 配置
@@ -286,10 +286,10 @@ docker exec my-code-server ls -la ~/.ai/
 ```nginx
 server {
     listen 80;
-    server_name my-code-server.domain.com;
+    server_name my-code-server-with-ai.domain.com;
 
     location / {
-        proxy_pass http://my-code-server.vscode-server-network:8585;
+        proxy_pass http://my-code-server-with-ai.vscode-server-network:8585;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -308,13 +308,13 @@ server {
 ```nginx
 server {
     listen 443 ssl;
-    server_name my-code-server.domain.com;
+    server_name my-code-server-with-ai.domain.com;
 
     ssl_certificate /ssl/.domain.com.cer;
     ssl_certificate_key /ssl/.domain.com.key;
 
     location / {
-        proxy_pass http://my-code-server.vscode-server-network:8585;
+        proxy_pass http://my-code-server-with-ai.vscode-server-network:8585;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -328,7 +328,7 @@ server {
 }
 ```
 
-访问地址：`https://my-code-server.domain.com?tkn=yourtoken`
+访问地址：`https://my-code-server-with-ai.domain.com?tkn=yourtoken`
 
 ## 架构支持
 

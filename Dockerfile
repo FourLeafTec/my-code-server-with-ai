@@ -45,7 +45,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
     fi
 
 # Install OpenCode CLI
-RUN npm install -g @opencode-ai/cli
+RUN npm install -g opencode-ai
 
 # Install oh-my-opencode plugin
 RUN npm install -g oh-my-opencode

@@ -8,8 +8,8 @@ Features: VS Code Server + OpenCode AI + OpenClaw AI assistants, WebSocket suppo
 
 ```bash
 # Pull and run
-docker pull ghcr.io/nerasse/my-code-server:main
-docker run -d -p 8585:8585 -e TOKEN=yourtoken ghcr.io/nerasse/my-code-server:main
+docker pull ghcr.io/FourLeafTec/my-code-server-with-ai:main
+docker run -d -p 8585:8585 -e TOKEN=yourtoken ghcr.io/FourLeafTec/my-code-server-with-ai:main
 
 # Or with docker-compose
 docker compose up -d
@@ -28,17 +28,17 @@ Access: `http://localhost:8585?tkn=yourtoken`
 ### Option 1: Using Pre-built Image
 
 ```bash
-docker pull ghcr.io/nerasse/my-code-server:main
+docker pull ghcr.io/FourLeafTec/my-code-server-with-ai:main
 ```
 
 ### Option 2: Build Locally
 
 ```bash
 # Using buildx (recommended)
-docker buildx build -t my-code-server:main .
+docker buildx build -t my-code-server-with-ai:main .
 
 # Or using legacy builder
-docker build -t my-code-server:main .
+docker build -t my-code-server-with-ai:main .
 ```
 
 ## Usage
@@ -73,7 +73,7 @@ volumes:
 docker run -d -p 8585:8585 \
   -e PORT=8585 \
   -e TOKEN=sometoken \
-  my-code-server:main
+  my-code-server-with-ai:main
 ```
 
 **With volumes and custom UID/GID:**
@@ -84,7 +84,7 @@ docker run -d -p 8585:8585 \
   -e PUID=$(id -u) \
   -e PGID=$(id -g) \
   -v /path/to/your/data:/home/vscodeuser \
-  my-code-server:main
+  my-code-server-with-ai:main
 ```
 
 ## Configuration
@@ -243,7 +243,7 @@ environment:
 
 ### Accessing Services
 
-- **OpenCode TUI**: Run `docker exec -it my-code-server opencode`
+- **OpenCode TUI**: Run `docker exec -it my-code-server-with-ai opencode`
 - **OpenClaw Dashboard**: Visit `http://localhost:18789`
 - **Logs**: Check `~/.ai/opencode.log` and `~/.ai/openclaw.log`
 
@@ -258,13 +258,13 @@ Logs are automatically rotated daily with the following behavior:
 View recent logs:
 ```bash
 # View OpenCode logs
-docker exec my-code-server tail -f ~/.ai/opencode.log
+docker exec my-code-server-with-ai tail -f ~/.ai/opencode.log
 
 # View OpenClaw logs
-docker exec my-code-server tail -f ~/.ai/openclaw.log
+docker exec my-code-server-with-ai tail -f ~/.ai/openclaw.log
 
 # List all log files
-docker exec my-code-server ls -la ~/.ai/
+docker exec my-code-server-with-ai ls -la ~/.ai/
 ```
 
 ### Auto-Restart & Updates
@@ -278,7 +278,7 @@ Services are monitored with `while true` loops that:
 
 ### Network Configuration
 
-- Container name: `my-code-server`
+- Container name: `my-code-server-with-ai`
 - Network: `vscode-server-network`
 
 ### HTTP Configuration
@@ -286,10 +286,10 @@ Services are monitored with `while true` loops that:
 ```nginx
 server {
     listen 80;
-    server_name my-code-server.domain.com;
+    server_name my-code-server-with-ai.domain.com;
 
     location / {
-        proxy_pass http://my-code-server.vscode-server-network:8585;
+        proxy_pass http://my-code-server-with-ai.vscode-server-network:8585;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -308,13 +308,13 @@ server {
 ```nginx
 server {
     listen 443 ssl;
-    server_name my-code-server.domain.com;
+    server_name my-code-server-with-ai.domain.com;
 
     ssl_certificate /ssl/.domain.com.cer;
     ssl_certificate_key /ssl/.domain.com.key;
 
     location / {
-        proxy_pass http://my-code-server.vscode-server-network:8585;
+        proxy_pass http://my-code-server-with-ai.vscode-server-network:8585;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -328,7 +328,7 @@ server {
 }
 ```
 
-Access: `https://my-code-server.domain.com?tkn=yourtoken`
+Access: `https://my-code-server-with-ai.domain.com?tkn=yourtoken`
 
 ## Architecture Support
 

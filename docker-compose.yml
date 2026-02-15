@@ -1,7 +1,7 @@
 services:
   vscode-server:
-    container_name: my-code-server
-    image: ghcr.io/nerasse/my-code-server:main
+    container_name: my-code-server-with-ai
+    image: ghcr.io/FourLeafTec/my-code-server-with-ai:main
     ports:
       - "${HOST_PORT:-8585}:${CONTAINER_PORT:-8585}"
       - "${OPENCODE_HOST_PORT:-4096}:${OPENCODE_PORT:-4096}"
