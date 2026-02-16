@@ -95,6 +95,7 @@ docker run -d -p 8585:8585 \
 |----------|-------------|---------|
 | `PORT` | VS Code Server listening port | `8585` |
 | `HOST` | Host interface to listen on | `0.0.0.0` |
+| `HOSTNAME` | Host interface for all services (VS Code, OpenCode, OpenClaw) | `0.0.0.0` |
 | `TOKEN` | Connection token for authentication | None |
 | `TOKEN_FILE` | Path to file containing token | - |
 | `PUID` | User ID (for volume permissions) | `1000` |
@@ -105,6 +106,8 @@ docker run -d -p 8585:8585 \
 | `VERBOSE` | Enable verbose output | `false` |
 | `LOG_LEVEL` | Log level (trace, debug, info, warn, error, critical, off) | - |
 | `CLI_DATA_DIR` | CLI metadata directory | - |
+| `USE_CDN_PROXY` | Enable CDN proxy mode (requires nginx configuration) | `false` |
+| `CDN_PROXY_HOST` | CDN proxy host (required when USE_CDN_PROXY=true) | - |
 | `OPENCODE_PORT` | OpenCode server port | `4096` |
 | `OPENCODE_HOST` | OpenCode bind address | `0.0.0.0` |
 | `OPENCODE_SERVER_PASSWORD` | OpenCode web password (recommended) | - |
@@ -329,6 +332,164 @@ server {
 ```
 
 Access: `https://my-code-server-with-ai.domain.com?tkn=yourtoken`
+
+### CDN Configuration Options
+
+VS Code Server requires CDN resources (extensions, UI assets). Configure this with a reverse proxy for production deployments.
+
+#### Reverse Proxy Configuration
+
+Use a reverse proxy (nginx, Apache) to forward CDN requests to original CDN servers. This is recommended for production deployments.
+
+**Apply CDN proxy fix:**
+```bash
+docker exec -it my-code-server-with-ai /app/fix-cdn-proxy.sh
+```
+
+**Automatic CDN proxy mode:**
+Add `USE_CDN_PROXY=true` and `CDN_PROXY_HOST` to your environment variables or `.env` file:
+```env
+USE_CDN_PROXY=true
+CDN_PROXY_HOST=my-vscode-server.domain.com
+```
+
+This automatically applies CDN proxy configuration on container startup.
+
+**Important:** `CDN_PROXY_HOST` is required when `USE_CDN_PROXY=true`. Set it to your reverse proxy domain name or IP address.
+
+This script patches VS Code Server's JavaScript files to use reverse proxy URLs:
+- `www.vscode-unpkg.net` → `https://CDN_PROXY_HOST/proxy-unpkg`
+- `https://main.vscode-cdn.net` → `https://CDN_PROXY_HOST/proxy-cdn`
+
+See the nginx configuration examples below.
+
+### Nginx Configuration for CDN Proxy
+
+After enabling CDN proxy mode (see above), configure your reverse proxy on the same host specified by `CDN_PROXY_HOST`. Add these location blocks to your Nginx configuration:
+
+```nginx
+# VS Code Extensions proxy (unpkg.net)
+location /proxy-unpkg/ {
+    # Remove /proxy-unpkg prefix when forwarding to the actual CDN
+    rewrite ^/proxy-unpkg/(.*)$ /$1 break;
+    proxy_pass https://www.vscode-unpkg.net;
+    proxy_set_header Host www.vscode-unpkg.net;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_ssl_server_name on;
+    proxy_ssl_protocols TLSv1.2 TLSv1.3;
+    proxy_connect_timeout 60s;
+    proxy_send_timeout 300s;
+    proxy_read_timeout 300s;
+    proxy_buffering on;
+    proxy_buffer_size 4k;
+    proxy_buffers 8 4k;
+}
+
+# VS Code Main CDN proxy (vscode-cdn.net)
+location /proxy-cdn/ {
+    # Remove /proxy-cdn prefix when forwarding
+    rewrite ^/proxy-cdn/(.*)$ /$1 break;
+    proxy_pass https://main.vscode-cdn.net;
+    proxy_set_header Host main.vscode-cdn.net;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_ssl_server_name on;
+    proxy_ssl_protocols TLSv1.2 TLSv1.3;
+    proxy_connect_timeout 60s;
+    proxy_send_timeout 300s;
+    proxy_read_timeout 300s;
+    proxy_buffering on;
+    proxy_buffer_size 4k;
+    proxy_buffers 8 4k;
+}
+```
+
+**Complete Nginx server configuration with CDN proxy:**
+
+This configuration should be deployed on the same host specified by `CDN_PROXY_HOST` (e.g., my-vscode-server.domain.com).
+
+```nginx
+server {
+    listen 80;
+    server_name my-vscode-server.domain.com;
+
+    # Main VS Code Server location
+    location / {
+        proxy_pass http://my-code-server-with-ai.vscode-server-network:8585;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # WebSocket support (required)
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    # VS Code Extensions proxy (proxy-unpkg)
+    location /proxy-unpkg/ {
+        rewrite ^/proxy-unpkg/(.*)$ /$1 break;
+        proxy_pass https://www.vscode-unpkg.net;
+        proxy_set_header Host www.vscode-unpkg.net;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_ssl_server_name on;
+        proxy_ssl_protocols TLSv1.2 TLSv1.3;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+        proxy_buffering on;
+        proxy_buffer_size 4k;
+        proxy_buffers 8 4k;
+    }
+
+    # VS Code Main CDN proxy (proxy-cdn)
+    location /proxy-cdn/ {
+        rewrite ^/proxy-cdn/(.*)$ /$1 break;
+        proxy_pass https://main.vscode-cdn.net;
+        proxy_set_header Host main.vscode-cdn.net;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_ssl_server_name on;
+        proxy_ssl_protocols TLSv1.2 TLSv1.3;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+        proxy_buffering on;
+        proxy_buffer_size 4k;
+        proxy_buffers 8 4k;
+    }
+}
+
+# HTTPS configuration
+server {
+    listen 443 ssl http2;
+    server_name my-vscode-server.domain.com;
+    ssl_certificate /ssl/.domain.com.cer;
+    ssl_certificate_key /ssl/.domain.com.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;
+    ssl_prefer_server_ciphers off;
+
+    # Same location blocks as HTTP example above...
+}
+```
+
+**Configuration Notes:**
+
+1. After updating Nginx configuration, reload: `sudo nginx -t && sudo nginx -s reload`
+2. This configuration must be deployed on the same host specified by `CDN_PROXY_HOST` environment variable
+3. The rewrite rule removes the proxy prefix before forwarding to the CDN (e.g., `/proxy-unpkg/extensions/...` → `/extensions/...`)
+4. `proxy_set_header Host` ensures the CDN receives the correct hostname
+5. SSL settings (`proxy_ssl_server_name`, `proxy_ssl_protocols`) ensure secure connections
+6. Increased timeout settings for large extension downloads
+7. Buffer settings optimize data transfer for CDN resources
+8. Test by accessing VS Code Server and verifying extensions load correctly
 
 ## Architecture Support
 

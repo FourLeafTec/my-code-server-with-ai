@@ -2,6 +2,28 @@
 
 echo "my-code-server debian container"
 
+if [ -d /home/vscodeuser ]; then
+    current_owner=$(stat -c %U:%G /home/vscodeuser 2>/dev/null || stat -f %u:%g /home/vscodeuser 2>/dev/null)
+    vscodeuser_uid=$(id -u vscodeuser)
+    vscodeuser_gid=$(id -g vscodeuser)
+    expected_owner="${vscodeuser_uid}:${vscodeuser_gid}"
+    
+    if [ "$current_owner" != "$expected_owner" ]; then
+        echo "Fixing /home/vscodeuser permissions (current: $current_owner, expected: $expected_owner)..."
+        chown -R "$expected_owner" /home/vscodeuser
+        chmod -R 755 /home/vscodeuser
+        echo "Permissions fixed successfully"
+    fi
+else
+    echo "Creating /home/vscodeuser directory with correct ownership..."
+    vscodeuser_uid=$(id -u vscodeuser)
+    vscodeuser_gid=$(id -g vscodeuser)
+    mkdir -p /home/vscodeuser
+    chown -R "${vscodeuser_uid}:${vscodeuser_gid}" /home/vscodeuser
+    chmod -R 755 /home/vscodeuser
+    echo "Directory created and permissions set"
+fi
+
 # Handle UID/GID changes if environment variables are set
 if [ -n "$PUID" ] || [ -n "$PGID" ]; then
   CURRENT_UID=$(id -u vscodeuser)
@@ -121,8 +143,7 @@ fi
 
 # Start AI services in background
 echo "Starting AI services..."
-su - vscodeuser -c "/app/start_ai.sh"
+su - vscodeuser -c "export CDN_PROXY_HOST=\"${CDN_PROXY_HOST}\"; export USE_CDN_PROXY=\"${USE_CDN_PROXY}\"; export OPENCODE_HOST=\"${OPENCODE_HOST}\"; export OPENCODE_PORT=\"${OPENCODE_PORT}\"; export OPENCLAW_HOST=\"${OPENCLAW_HOST}\"; export OPENCLAW_PORT=\"${OPENCLAW_PORT}\"; export OPENCODE_SERVER_PASSWORD=\"${OPENCODE_SERVER_PASSWORD}\"; export OPENCODE_SERVER_USERNAME=\"${OPENCODE_SERVER_USERNAME}\"; export CLAW_GATEWAY_TOKEN=\"${CLAW_GATEWAY_TOKEN}\"; /app/start_ai.sh"
 
-# Execute the final command as vscodeuser
-echo "Executing: $CMD (as vscodeuser)"
-exec su - vscodeuser -c "$CMD"
+echo "Executing via VSCode wrapper: $CMD"
+exec su - vscodeuser -c "export CDN_PROXY_HOST=\"${CDN_PROXY_HOST}\"; export USE_CDN_PROXY=\"${USE_CDN_PROXY}\"; /app/vscode-wrapper.sh $CMD"

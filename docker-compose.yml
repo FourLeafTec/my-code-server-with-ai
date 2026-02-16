@@ -1,7 +1,7 @@
 services:
   vscode-server:
     container_name: my-code-server-with-ai
-    image: ghcr.io/FourLeafTec/my-code-server-with-ai:main
+    image: my-code-server-with-ai:main
     ports:
       - "${HOST_PORT:-8585}:${CONTAINER_PORT:-8585}"
       - "${OPENCODE_HOST_PORT:-4096}:${OPENCODE_PORT:-4096}"
@@ -9,21 +9,26 @@ services:
     environment:
       - PORT=${CONTAINER_PORT:-8585}
       - TOKEN=${TOKEN:-sometoken}
+      - HOST=${HOST:-0.0.0.0}
+      - HOSTNAME=${HOSTNAME:-0.0.0.0}
+      - USE_CDN_PROXY=${USE_CDN_PROXY:-false}
+      - CDN_PROXY_HOST=${CDN_PROXY_HOST}
       - OPENCODE_PORT=${OPENCODE_PORT:-4096}
+      - OPENCODE_HOST=${OPENCODE_HOST:-${HOSTNAME:-0.0.0.0}}
       - OPENCLAW_PORT=${OPENCLAW_PORT:-18789}
+      - OPENCLAW_HOST=${OPENCLAW_HOST:-${HOSTNAME:-0.0.0.0}}
       - OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD}
       - OPENCODE_SERVER_USERNAME=${OPENCODE_SERVER_USERNAME:-opencode}
       - CLAW_GATEWAY_TOKEN=${CLAW_GATEWAY_TOKEN}
-    # Uncomment to set custom UID/GID for vscodeuser (useful for volume permissions)
-      #- PUID=${PUID:-1000}
-      #- PGID=${PGID:-1000}
-    #store the data in the host (optional : uncomment the volumes section and change the path)
-    #volumes:
-    #  - /home/<USER>/appdata/my-code-server:/home/vscodeuser/
-    
-    # Enable Docker's built-in init system (tini) for proper process management
+      # Uncomment to set custom UID/GID for vscodeuser (useful for volume permissions)
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-998}
+      #store the data in the host (optional : uncomment the volumes section and change the path)
+    volumes:
+      - "/home/ubuntu/appdata/my-code-server:/home/vscodeuser/"
+      # Enable Docker's built-in init system (tini) for proper process management
     init: true
-    
+
     #optional : add the network
     networks:
       - vscode-server-network
