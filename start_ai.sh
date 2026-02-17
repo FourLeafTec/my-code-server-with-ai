@@ -99,16 +99,18 @@ monitor_path_state() {
 
             mkdir -p "$FLAG_DIR"
             touch "$FLAG_DIR/.patch-cdn"
-            
+
             if CDN_PROXY_HOST="$CDN_PROXY_HOST" /app/fix-cdn-proxy.sh >> "$log_file" 2>&1; then
                 echo "[$timestamp] ✅ CDN proxy patches applied successfully" | tee -a "$log_file"
-                
+
                 echo "" > "$state_file"
                 for hash_dir in $hash_dirs; do
                     local hash=$(basename "$hash_dir")
                     echo "$hash" >> "$state_file"
                 done
                 echo "[$timestamp] ✓ Updated state file with $(wc -l < "$state_file") hashes" | tee -a "$log_file"
+
+                restart_vscode_server | tee -a "$log_file"
             else
                 echo "[$timestamp] ❌ CDN proxy patching failed (not updating state file)" | tee -a "$log_file"
             fi
@@ -127,6 +129,21 @@ monitor_path_state() {
 
         sleep $check_interval
     done
+}
+
+restart_vscode_server() {
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[$timestamp] Restarting VSCode Server..."
+
+    local vscode_pid=$(pgrep -f "code serve-web" | head -1)
+    if [ -n "$vscode_pid" ]; then
+        echo "[$timestamp] Stopping VSCode Server (PID: $vscode_pid)..."
+        kill $vscode_pid 2>/dev/null
+        sleep 3
+        echo "[$timestamp] VSCode Server stopped, will be auto-restarted"
+    else
+        echo "[$timestamp] No running VSCode Server process found"
+    fi
 }
 
 # Setup OpenClaw config with authentication if token is provided
@@ -200,6 +217,54 @@ fi
 export OPENCODE_SERVER_PASSWORD
 export OPENCODE_SERVER_USERNAME
 export CDN_PROXY_HOST
+
+if [ "$HOLD_CONTAINER" = "true" ]; then
+    echo "Starting VSCode Server..."
+
+    HOST="${HOST:-0.0.0.0}"
+    PORT="${PORT:-8585}"
+    CMD="/usr/bin/code serve-web --host $HOST --port $PORT"
+
+    if [ -n "$TOKEN" ]; then
+        CMD="$CMD --connection-token $TOKEN"
+    elif [ -n "$TOKEN_FILE" ]; then
+        CMD="$CMD --connection-token-file $TOKEN_FILE"
+    else
+        CMD="$CMD --without-connection-token"
+    fi
+
+    if [ -n "$SERVER_DATA_DIR" ]; then
+        CMD="$CMD --server-data-dir $SERVER_DATA_DIR"
+    fi
+
+    if [ -n "$SERVER_BASE_PATH" ]; then
+        CMD="$CMD --server-base-path $SERVER_BASE_PATH"
+    fi
+
+    if [ -n "$SOCKET_PATH" ]; then
+        CMD="$CMD --socket-path $SOCKET_PATH"
+    fi
+
+    CMD="$CMD --accept-server-license-terms"
+
+    (
+        while true; do
+            echo "[VSCode Server] Starting..."
+
+            if CDN_PROXY_HOST="$CDN_PROXY_HOST" USE_CDN_PROXY="$USE_CDN_PROXY" /app/vscode-wrapper.sh $CMD; then
+                echo "[VSCode Server] Exited normally"
+            else
+                echo "[VSCode Server] Exited with error"
+            fi
+
+            echo "[VSCode Server] Restarting in 5 seconds..."
+            sleep 5
+        done
+    ) &
+    VSCODE_PID=$!
+    echo "[VSCode Server] Started (PID: $VSCODE_PID)"
+fi
+
 
 # Start OpenCode with auto-restart, update checking and log rotation
 (
@@ -301,13 +366,28 @@ export CDN_PROXY_HOST
 
 # Start path state monitor if CDN proxy is enabled
 if [ "$USE_CDN_PROXY" = "true" ]; then
-    echo "Starting path state monitor..."
-    monitor_path_state &
-    PATH_STATE_PID=$!
-    echo "Path state monitor started (PID: $PATH_STATE_PID)"
+    if [ "$HOLD_CONTAINER" = "true" ]; then
+        echo "Starting path state monitor as container holder..."
+        monitor_path_state
+    else
+        echo "Starting path state monitor..."
+        monitor_path_state &
+        PATH_STATE_PID=$!
+        echo "Path state monitor started (PID: $PATH_STATE_PID)"
+        echo "AI services started"
+    fi
 else
-    echo "Path state monitor disabled (USE_CDN_PROXY=$USE_CDN_PROXY)"
-    echo "Set USE_CDN_PROXY=true to enable automatic path state monitoring"
+    if [ "$HOLD_CONTAINER" = "true" ]; then
+        echo "HOLD_CONTAINER=true but USE_CDN_PROXY=$USE_CDN_PROXY"
+        echo "Starting a simple keep-alive loop..."
+        echo "AI services started"
+        while true; do
+            sleep 60
+        done
+    else
+        echo "Path state monitor disabled (USE_CDN_PROXY=$USE_CDN_PROXY)"
+        echo "Set USE_CDN_PROXY=true to enable automatic path state monitoring"
+        echo "AI services started"
+    fi
 fi
 
-echo "AI services started in background"

@@ -143,7 +143,10 @@ fi
 
 # Start AI services in background
 echo "Starting AI services..."
-su - vscodeuser -c "export CDN_PROXY_HOST=\"${CDN_PROXY_HOST}\"; export USE_CDN_PROXY=\"${USE_CDN_PROXY}\"; export OPENCODE_HOST=\"${OPENCODE_HOST}\"; export OPENCODE_PORT=\"${OPENCODE_PORT}\"; export OPENCLAW_HOST=\"${OPENCLAW_HOST}\"; export OPENCLAW_PORT=\"${OPENCLAW_PORT}\"; export OPENCODE_SERVER_PASSWORD=\"${OPENCODE_SERVER_PASSWORD}\"; export OPENCODE_SERVER_USERNAME=\"${OPENCODE_SERVER_USERNAME}\"; export CLAW_GATEWAY_TOKEN=\"${CLAW_GATEWAY_TOKEN}\"; /app/start_ai.sh"
+su - vscodeuser -c "export CDN_PROXY_HOST=\"${CDN_PROXY_HOST}\"; export USE_CDN_PROXY=\"${USE_CDN_PROXY}\"; export OPENCODE_HOST=\"${OPENCODE_HOST}\"; export OPENCODE_PORT=\"${OPENCODE_PORT}\"; export OPENCLAW_HOST=\"${OPENCLAW_HOST}\"; export OPENCLAW_PORT=\"${OPENCLAW_PORT}\"; export OPENCODE_SERVER_PASSWORD=\"${OPENCODE_SERVER_PASSWORD}\"; export OPENCODE_SERVER_USERNAME=\"${OPENCODE_SERVER_USERNAME}\"; export CLAW_GATEWAY_TOKEN=\"${CLAW_GATEWAY_TOKEN}\"; export HOLD_CONTAINER=true; /app/start_ai.sh" &
+AI_SERVICES_PID=$!
 
-echo "Executing via VSCode wrapper: $CMD"
-exec su - vscodeuser -c "export CDN_PROXY_HOST=\"${CDN_PROXY_HOST}\"; export USE_CDN_PROXY=\"${USE_CDN_PROXY}\"; /app/vscode-wrapper.sh $CMD"
+echo "All services started"
+echo "Container will be held by AI services process"
+
+wait $AI_SERVICES_PID

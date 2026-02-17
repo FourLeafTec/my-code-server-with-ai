@@ -57,6 +57,10 @@ echo ""
 
 # Initialize CLI files counter
 CLI_FILES_PATCHED=0
+CLI_URLS_REPLACED=0
+WORKBENCH_URLS_REPLACED=0
+PRE_INDEX_URLS_REPLACED=0
+PRODUCT_URLS_REPLACED=0
 
 # ============================================================================
 # PATCH PRODUCT.JSON
@@ -90,9 +94,11 @@ if [ -f "$PRODUCT_JSON" ]; then
     sudo sed -i "s|https://main\.vscode-cdn\.net|$PROXY_CDN_URL|g" "$PRODUCT_JSON"
     sudo sed -i "s|https://{{uuid}}\.vscode-cdn\.net|$PROXY_CDN_URL|g" "$PRODUCT_JSON"
 
+    PRODUCT_URLS_REPLACED=$(grep -c "$PROXY_UNPKG_URL\|$PROXY_CDN_URL" "$PRODUCT_JSON" 2>/dev/null || true)
+    PRODUCT_URLS_REPLACED=${PRODUCT_URLS_REPLACED:-0}
     echo ""
     echo "✅ product.json patched successfully!"
-    echo "   CDN URLs replaced: 11"
+    echo "   CDN URLs replaced: $PRODUCT_URLS_REPLACED"
 else
     echo "⚠️  WARNING: $PRODUCT_JSON not found"
     echo "   VS Code Server may not be installed yet"
@@ -124,9 +130,11 @@ if [ -f "$WORKBENCH_HTML" ]; then
         echo ""
         echo "  → Replacing vscode-unpkg.net → $PROXY_UNPKG_URL"
         sudo sed -i "s|https://[^/]*vscode-unpkg\.net|$PROXY_UNPKG_URL|g" "$WORKBENCH_HTML"
+        WORKBENCH_URLS_REPLACED=$(grep -c "$PROXY_UNPKG_URL" "$WORKBENCH_HTML" 2>/dev/null || true)
+        WORKBENCH_URLS_REPLACED=${WORKBENCH_URLS_REPLACED:-0}
         echo ""
         echo "✅ workbench.html patched successfully!"
-        echo "   CDN URLs replaced: 1"
+        echo "   CDN URLs replaced: $WORKBENCH_URLS_REPLACED"
     else
         echo ""
         echo "ℹ️  No CDN URLs found in workbench.html (already patched)"
@@ -161,8 +169,11 @@ if [ -f "$PRE_INDEX_HTML" ]; then
         echo ""
         echo "  → Replacing vscode-unpkg.net → $PROXY_UNPKG_URL"
         sudo sed -i "s|https://[^/]*vscode-unpkg\.net|$PROXY_UNPKG_URL|g" "$PRE_INDEX_HTML"
+        PRE_INDEX_URLS_REPLACED=$(grep -c "$PROXY_UNPKG_URL" "$PRE_INDEX_HTML" 2>/dev/null || true)
+        PRE_INDEX_URLS_REPLACED=${PRE_INDEX_URLS_REPLACED:-0}
         echo ""
         echo "✅ pre/index.html patched successfully!"
+        echo "   CDN URLs replaced: $PRE_INDEX_URLS_REPLACED"
     else
         echo ""
         echo "ℹ️  No CDN URLs found in pre/index.html (already patched)"
@@ -234,7 +245,14 @@ if [ -n "$HASH_DIR" ] && [ -d "$HASH_DIR" ]; then
 
         sudo sed -i "s|https://main\.vscode-cdn\.net|$PROXY_CDN_URL|g" "$file"
         sudo sed -i "s|https://{{uuid}}\.vscode-cdn\.net|$PROXY_CDN_URL|g" "$file"
+        sudo perl -pi -e "s|https://vscode-cdn\.net|$PROXY_CDN_URL|g" "$file"
         sudo perl -pi -e "s|https://[^/]+\.vscode-cdn\.net|$PROXY_CDN_URL|g" "$file"
+        sudo sed -i 's|"vscode-cdn\.net"|"$PROXY_CDN_URL"|g' "$file"
+        sudo sed -i 's|"vscode-unpkg\.net"|"$PROXY_UNPKG_URL"|g' "$file"
+
+        FILE_URLS_REPLACED=$(grep -v "sourceMappingURL" "$file" 2>/dev/null | grep -c "$PROXY_UNPKG_URL\|$PROXY_CDN_URL" || true)
+        FILE_URLS_REPLACED=${FILE_URLS_REPLACED:-0}
+        CLI_URLS_REPLACED=$((CLI_URLS_REPLACED + FILE_URLS_REPLACED))
 
         if grep -v "sourceMappingURL" "$file" 2>/dev/null | grep -q "vscode-cdn\.net\|vscode-unpkg\.net"; then
             echo "    ⚠️  Some CDN URLs remain in $FILENAME"
@@ -256,6 +274,7 @@ if [ -n "$HASH_DIR" ] && [ -d "$HASH_DIR" ]; then
 
     echo ""
     echo "✅ CLI serve-web JavaScript files patched: $CLI_FILES_PATCHED"
+    echo "   Total CDN URLs replaced: $CLI_URLS_REPLACED"
 
     # Patch CLI product.json
     CLI_PRODUCT_JSON="$HASH_DIR/product.json"
@@ -275,7 +294,12 @@ if [ -n "$HASH_DIR" ] && [ -d "$HASH_DIR" ]; then
         sudo sed -i "s|https://main\.vscode-cdn\.net|$PROXY_CDN_URL|g" "$CLI_PRODUCT_JSON"
         sudo sed -i "s|https://{{uuid}}\.vscode-cdn\.net|$PROXY_CDN_URL|g" "$CLI_PRODUCT_JSON"
 
+        CLI_PRODUCT_URLS_REPLACED=$(grep -c "$PROXY_UNPKG_URL\|$PROXY_CDN_URL" "$CLI_PRODUCT_JSON" 2>/dev/null || true)
+        CLI_PRODUCT_URLS_REPLACED=${CLI_PRODUCT_URLS_REPLACED:-0}
+        CLI_URLS_REPLACED=$((CLI_URLS_REPLACED + CLI_PRODUCT_URLS_REPLACED))
+
         echo "  ✅ CLI product.json patched"
+        echo "   CDN URLs replaced: $CLI_PRODUCT_URLS_REPLACED"
     fi
 else
     echo "ℹ️  No dynamic hash directory found in $CLI_WEB_DIR"
@@ -348,10 +372,12 @@ echo "=========================================="
 echo "Summary"
 echo "=========================================="
 echo "Critical files patched: 4 types"
-echo "  - product.json (11 URLs)"
-echo "  - workbench.html (1 URL)"
-echo "  - pre/index.html (webview preloader)"
-echo "  - CLI serve-web JavaScript files ($CLI_FILES_PATCHED files, excluding source-map)"
+echo "  - product.json ($PRODUCT_URLS_REPLACED URLs)"
+echo "  - workbench.html ($WORKBENCH_URLS_REPLACED URLs)"
+echo "  - pre/index.html ($PRE_INDEX_URLS_REPLACED URLs)"
+echo "  - CLI serve-web files ($CLI_FILES_PATCHED files, $CLI_URLS_REPLACED URLs, excluding source-map)"
+echo ""
+echo "Total CDN URLs replaced: $((PRODUCT_URLS_REPLACED + WORKBENCH_URLS_REPLACED + PRE_INDEX_URLS_REPLACED + CLI_URLS_REPLACED))"
 echo ""
 echo "Non-critical files skipped:"
 echo "  - JavaScript source map references (debugging only)"
@@ -396,15 +422,29 @@ echo ""
 echo "Required Nginx configuration:"
 echo ""
 echo "  location /proxy-unpkg/ {"
-echo "      rewrite ^/proxy-unpkg/(.*)$ /\$1 break;"
-echo "      proxy_pass https://www.vscode-unpkg.net;"
+echo "      # 将请求转发到目标服务器"
+echo "      # 注意：末尾的 / 很重要，它会把 "/proxy-unpkg/" 替换为 "/""
+echo "      proxy_pass https://www.vscode-unpkg.net/;"
+echo "      # 常用代理请求头设置"
 echo "      proxy_set_header Host www.vscode-unpkg.net;"
+echo "      proxy_set_header X-Real-IP $remote_addr;"
+echo "      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;"
+echo "      proxy_set_header X-Forwarded-Proto $scheme;"
+echo "      # 解决可能出现的重定向问题"
+echo "      proxy_redirect off;"
 echo "  }"
 echo ""
 echo "  location /proxy-cdn/ {"
-echo "      rewrite ^/proxy-cdn/(.*)$ /\$1 break;"
-echo "      proxy_pass https://main.vscode-cdn.net;"
+echo "      # 将请求转发到目标服务器"
+echo "      # 注意：末尾的 / 很重要，它会把 "/proxy-cdn/" 替换为 "/""
+echo "      proxy_pass https://main.vscode-cdn.net/;"
+echo "      # 常用代理请求头设置"
 echo "      proxy_set_header Host main.vscode-cdn.net;"
+echo "      proxy_set_header X-Real-IP $remote_addr;"
+echo "      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;"
+echo "      proxy_set_header X-Forwarded-Proto $scheme;"
+echo "      # 解决可能出现的重定向问题"
+echo "      proxy_redirect off;"
 echo "  }"
 echo ""
 echo "=========================================="
