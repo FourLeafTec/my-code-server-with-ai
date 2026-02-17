@@ -301,6 +301,38 @@ if [ -n "$HASH_DIR" ] && [ -d "$HASH_DIR" ]; then
         echo "  ✅ CLI product.json patched"
         echo "   CDN URLs replaced: $CLI_PRODUCT_URLS_REPLACED"
     fi
+    
+    # Patch all JavaScript files in CLI directory
+    echo ""
+    echo "Patching all JavaScript files in CLI directory..."
+    
+    find "$HASH_DIR" -name "*.js" -type f -exec grep -l "vscode-cdn\.net\|vscode-unpkg\.net" {} \; 2>/dev/null | while IFS= read -r file; do
+        if [ -z "$file" ]; then
+            continue
+        fi
+        
+        cdn_count=$(grep -c "vscode-cdn\.net\|vscode-unpkg\.net" "$file" 2>/dev/null || true)
+        
+        if [ "$cdn_count" -gt 0 ]; then
+            FILENAME=$(basename "$file")
+            
+            BACKUP_EXISTS=0
+            if [ ! -f "$file.backup" ]; then
+                sudo cp "$file" "$file.backup"
+                BACKUP_EXISTS=1
+            fi
+            
+            # Patch all CDN URL patterns
+            sudo sed -i "s|https://main\.vscode-cdn\.net|$PROXY_CDN_URL|g" "$file"
+            sudo sed -i "s|https://{{uuid}}\.vscode-cdn\.net|$PROXY_CDN_URL|g" "$file"
+            sudo sed -i "s|https://www\.vscode-unpkg\.net|$PROXY_UNPKG_URL|g" "$file"
+            sudo sed -i "s|https://[^/]*vscode-unpkg\.net|$PROXY_UNPKG_URL|g" "$file"
+            
+            CLI_FILES_PATCHED=$((CLI_FILES_PATCHED + 1))
+        fi
+    done
+    
+    echo "  ✅ All JavaScript files patched: $CLI_FILES_PATCHED"
 else
     echo "ℹ️  No dynamic hash directory found in $CLI_WEB_DIR"
     echo "   CLI serve-web files may not be installed yet"
