@@ -94,8 +94,7 @@ docker run -d -p 8585:8585 \
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
 | `PORT` | VS Code Server 监听端口 | `8585` |
-| `HOST` | 监听地址 | `0.0.0.0` |
-| `HOSTNAME` | 所有服务的主机接口（VS Code、OpenCode、OpenClaw） | `0.0.0.0` |
+| `HOST` | 所有服务的主机接口（VS Code、OpenCode、OpenClaw） | `0.0.0.0` |
 | `TOKEN` | 连接认证 token | 无 |
 | `TOKEN_FILE` | 包含 token 的文件路径 | - |
 | `PUID` | 用户 ID（用于数据卷权限） | `1000` |

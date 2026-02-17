@@ -91,47 +91,46 @@ docker run -d -p 8585:8585 \
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | VS Code Server listening port | `8585` |
-| `HOST` | Host interface to listen on | `0.0.0.0` |
-| `HOSTNAME` | Host interface for all services (VS Code, OpenCode, OpenClaw) | `0.0.0.0` |
-| `TOKEN` | Connection token for authentication | None |
-| `TOKEN_FILE` | Path to file containing token | - |
-| `PUID` | User ID (for volume permissions) | `1000` |
-| `PGID` | Group ID (for volume permissions) | `1000` |
-| `SERVER_DATA_DIR` | Server data storage directory | - |
-| `SERVER_BASE_PATH` | Base path for web UI | - |
-| `SOCKET_PATH` | Socket path for server | - |
-| `VERBOSE` | Enable verbose output | `false` |
-| `LOG_LEVEL` | Log level (trace, debug, info, warn, error, critical, off) | - |
-| `CLI_DATA_DIR` | CLI metadata directory | - |
-| `USE_CDN_PROXY` | Enable CDN proxy mode (requires nginx configuration) | `false` |
-| `CDN_PROXY_HOST` | CDN proxy host (required when USE_CDN_PROXY=true) | - |
-| `OPENCODE_PORT` | OpenCode server port | `4096` |
-| `OPENCODE_HOST` | OpenCode bind address | `0.0.0.0` |
-| `OPENCODE_SERVER_PASSWORD` | OpenCode web password (recommended) | - |
-| `OPENCODE_SERVER_USERNAME` | OpenCode web username | `opencode` |
-| `OPENCLAW_PORT` | OpenClaw gateway port | `18789` |
-| `OPENCLAW_HOST` | OpenClaw bind address | `0.0.0.0` |
-| `CLAW_GATEWAY_TOKEN` | OpenClaw gateway token (recommended) | - |
-| `LOG_RETENTION_DAYS` | Log retention period (days) | `3` |
+| Variable                   | Description                                                   | Default    |
+| -------------------------- | ------------------------------------------------------------- | ---------- |
+| `PORT`                     | VS Code Server listening port                                 | `8585`     |
+| `HOST`                     | Host interface for all services (VS Code, OpenCode, OpenClaw) | `0.0.0.0`  |
+| `TOKEN`                    | Connection token for authentication                           | None       |
+| `TOKEN_FILE`               | Path to file containing token                                 | -          |
+| `PUID`                     | User ID (for volume permissions)                              | `1000`     |
+| `PGID`                     | Group ID (for volume permissions)                             | `1000`     |
+| `SERVER_DATA_DIR`          | Server data storage directory                                 | -          |
+| `SERVER_BASE_PATH`         | Base path for web UI                                          | -          |
+| `SOCKET_PATH`              | Socket path for server                                        | -          |
+| `VERBOSE`                  | Enable verbose output                                         | `false`    |
+| `LOG_LEVEL`                | Log level (trace, debug, info, warn, error, critical, off)    | -          |
+| `CLI_DATA_DIR`             | CLI metadata directory                                        | -          |
+| `USE_CDN_PROXY`            | Enable CDN proxy mode (requires nginx configuration)          | `false`    |
+| `CDN_PROXY_HOST`           | CDN proxy host (required when USE_CDN_PROXY=true)             | -          |
+| `OPENCODE_PORT`            | OpenCode server port                                          | `4096`     |
+| `OPENCODE_HOST`            | OpenCode bind address                                         | `0.0.0.0`  |
+| `OPENCODE_SERVER_PASSWORD` | OpenCode web password (recommended)                           | -          |
+| `OPENCODE_SERVER_USERNAME` | OpenCode web username                                         | `opencode` |
+| `OPENCLAW_PORT`            | OpenClaw gateway port                                         | `18789`    |
+| `OPENCLAW_HOST`            | OpenClaw bind address                                         | `0.0.0.0`  |
+| `CLAW_GATEWAY_TOKEN`       | OpenClaw gateway token (recommended)                          | -          |
+| `LOG_RETENTION_DAYS`       | Log retention period (days)                                   | `3`        |
 
 ### Docker Compose Variables
 
 Use environment variables or `.env` file:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `HOST_PORT` | Host port mapping | `8585` |
-| `CONTAINER_PORT` | Container port | `8585` |
-| `TOKEN` | Authentication token | `sometoken` |
-| `PUID` | User ID | `1000` |
-| `PGID` | Group ID | `1000` |
-| `OPENCODE_HOST_PORT` | OpenCode host port | `4096` |
-| `OPENCODE_PORT` | OpenCode container port | `4096` |
-| `OPENCLAW_HOST_PORT` | OpenClaw host port | `18789` |
-| `OPENCLAW_PORT` | OpenClaw container port | `18789` |
+| Variable             | Description             | Default     |
+| -------------------- | ----------------------- | ----------- |
+| `HOST_PORT`          | Host port mapping       | `8585`      |
+| `CONTAINER_PORT`     | Container port          | `8585`      |
+| `TOKEN`              | Authentication token    | `sometoken` |
+| `PUID`               | User ID                 | `1000`      |
+| `PGID`               | Group ID                | `1000`      |
+| `OPENCODE_HOST_PORT` | OpenCode host port      | `4096`      |
+| `OPENCODE_PORT`      | OpenCode container port | `4096`      |
+| `OPENCLAW_HOST_PORT` | OpenClaw host port      | `18789`     |
+| `OPENCLAW_PORT`      | OpenClaw container port | `18789`     |
 
 ### Custom UID/GID
 
@@ -148,10 +147,10 @@ This container includes pre-installed AI coding assistants that run as backgroun
 
 ### Available Services
 
-| Service | Description | Default Port | CLI Command |
-|---------|-------------|--------------|-------------|
-| **OpenCode** | AI coding assistant with TUI | `4096` | `opencode` |
-| **OpenClaw** | Personal AI assistant gateway | `18789` | `openclaw` |
+| Service      | Description                   | Default Port | CLI Command |
+| ------------ | ----------------------------- | ------------ | ----------- |
+| **OpenCode** | AI coding assistant with TUI  | `4096`       | `opencode`  |
+| **OpenClaw** | Personal AI assistant gateway | `18789`      | `openclaw`  |
 
 ### Port Configuration
 
