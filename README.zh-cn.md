@@ -95,6 +95,7 @@ docker run -d -p 8585:8585 \
 |--------|------|--------|
 | `PORT` | VS Code Server 监听端口 | `8585` |
 | `HOST` | 监听地址 | `0.0.0.0` |
+| `HOSTNAME` | 所有服务的主机接口（VS Code、OpenCode、OpenClaw） | `0.0.0.0` |
 | `TOKEN` | 连接认证 token | 无 |
 | `TOKEN_FILE` | 包含 token 的文件路径 | - |
 | `PUID` | 用户 ID（用于数据卷权限） | `1000` |
@@ -103,7 +104,9 @@ docker run -d -p 8585:8585 \
 | `SERVER_BASE_PATH` | Web UI 基础路径 | - |
 | `SOCKET_PATH` | Socket 文件路径 | - |
 | `VERBOSE` | 启用详细输出 | `false` |
-| `LOG_LEVEL` | 日志级别 | - |
+| `LOG_LEVEL` | 日志级别（trace, debug, info, warn, error, critical, off） | - |
+| `USE_CDN_PROXY` | 启用 CDN 代理模式（需要 nginx 配置） | `false` |
+| `CDN_PROXY_HOST` | CDN 代理主机（当 USE_CDN_PROXY=true 时必需） | - |
 | `CLI_DATA_DIR` | CLI 元数据目录 | - |
 | `OPENCODE_PORT` | OpenCode 服务端口 | `4096` |
 | `OPENCODE_HOST` | OpenCode 绑定地址 | `0.0.0.0` |
@@ -329,6 +332,164 @@ server {
 ```
 
 访问地址：`https://my-code-server-with-ai.domain.com?tkn=yourtoken`
+
+### CDN 配置选项
+
+VS Code Server 需要 CDN 资源（扩展、UI 资产）。在生产环境中配置反向代理。
+
+#### 反向代理配置
+
+使用反向代理（nginx、Apache）将 CDN 请求转发到原始 CDN 服务器。建议在生产环境中使用。
+
+**应用 CDN 代理修复：**
+```bash
+docker exec -it my-code-server-with-ai /app/fix-cdn-proxy.sh
+```
+
+**自动 CDN 代理模式：**
+在环境变量或 `.env` 文件中添加 `USE_CDN_PROXY=true` 和 `CDN_PROXY_HOST`：
+```env
+USE_CDN_PROXY=true
+CDN_PROXY_HOST=my-vscode-server.domain.com
+```
+
+这会在容器启动时自动应用 CDN 代理配置。
+
+**重要：** 当 `USE_CDN_PROXY=true` 时，`CDN_PROXY_HOST` 是必需的。将其设置为你的反向代理域名或 IP 地址。
+
+此脚本会修补 VS Code Server 的 JavaScript 文件以使用反向代理 URL：
+- `www.vscode-unpkg.net` → `https://CDN_PROXY_HOST/proxy-unpkg`
+- `https://main.vscode-cdn.net` → `https://CDN_PROXY_HOST/proxy-cdn`
+
+详见下面的 nginx 配置示例。
+
+### CDN 代理的 Nginx 配置
+
+启用 CDN 代理模式后（见上文），请在 `CDN_PROXY_HOST` 指定的主机上配置反向代理。将以下 location 块添加到 Nginx 配置中：
+
+```nginx
+# VS Code 扩展代理 (unpkg.net)
+location /proxy-unpkg/ {
+    # 转发到实际 CDN 时移除 /proxy-unpkg 前缀
+    rewrite ^/proxy-unpkg/(.*)$ /$1 break;
+    proxy_pass https://www.vscode-unpkg.net;
+    proxy_set_header Host www.vscode-unpkg.net;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_ssl_server_name on;
+    proxy_ssl_protocols TLSv1.2 TLSv1.3;
+    proxy_connect_timeout 60s;
+    proxy_send_timeout 300s;
+    proxy_read_timeout 300s;
+    proxy_buffering on;
+    proxy_buffer_size 4k;
+    proxy_buffers 8 4k;
+}
+
+# VS Code 主 CDN 代理 (vscode-cdn.net)
+location /proxy-cdn/ {
+    # 转发时移除 /proxy-cdn 前缀
+    rewrite ^/proxy-cdn/(.*)$ /$1 break;
+    proxy_pass https://main.vscode-cdn.net;
+    proxy_set_header Host main.vscode-cdn.net;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_ssl_server_name on;
+    proxy_ssl_protocols TLSv1.2 TLSv1.3;
+    proxy_connect_timeout 60s;
+    proxy_send_timeout 300s;
+    proxy_read_timeout 300s;
+    proxy_buffering on;
+    proxy_buffer_size 4k;
+    proxy_buffers 8 4k;
+}
+```
+
+**带 CDN 代理的完整 Nginx 服务器配置：**
+
+此配置应部署在 `CDN_PROXY_HOST` 指定的主机上（例如 my-vscode-server.domain.com）。
+
+```nginx
+server {
+    listen 80;
+    server_name my-vscode-server.domain.com;
+
+    # 主 VS Code Server location
+    location / {
+        proxy_pass http://my-code-server-with-ai.vscode-server-network:8585;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # WebSocket 支持（必需）
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    # VS Code 扩展代理 (proxy-unpkg)
+    location /proxy-unpkg/ {
+        rewrite ^/proxy-unpkg/(.*)$ /$1 break;
+        proxy_pass https://www.vscode-unpkg.net;
+        proxy_set_header Host www.vscode-unpkg.net;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_ssl_server_name on;
+        proxy_ssl_protocols TLSv1.2 TLSv1.3;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+        proxy_buffering on;
+        proxy_buffer_size 4k;
+        proxy_buffers 8 4k;
+    }
+
+    # VS Code 主 CDN 代理 (proxy-cdn)
+    location /proxy-cdn/ {
+        rewrite ^/proxy-cdn/(.*)$ /$1 break;
+        proxy_pass https://main.vscode-cdn.net;
+        proxy_set_header Host main.vscode-cdn.net;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_ssl_server_name on;
+        proxy_ssl_protocols TLSv1.2 TLSv1.3;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+        proxy_buffering on;
+        proxy_buffer_size 4k;
+        proxy_buffers 8 4k;
+    }
+}
+
+# HTTPS 配置
+server {
+    listen 443 ssl http2;
+    server_name my-vscode-server.domain.com;
+    ssl_certificate /ssl/.domain.com.cer;
+    ssl_certificate_key /ssl/.domain.com.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;
+    ssl_prefer_server_ciphers off;
+
+    # 与上述 HTTP 示例相同的 location 块...
+}
+```
+
+**配置说明：**
+
+1. 更新 Nginx 配置后，重新加载：`sudo nginx -t && sudo nginx -s reload`
+2. 此配置必须部署在 `CDN_PROXY_HOST` 环境变量指定的主机上
+3. 重写规则在转发到 CDN 之前移除代理前缀（例如 `/proxy-unpkg/extensions/...` → `/extensions/...`）
+4. `proxy_set_header Host` 确保 CDN 接收到正确的主机名
+5. SSL 设置（`proxy_ssl_server_name`、`proxy_ssl_protocols`）确保安全连接
+6. 增加的超时设置用于大扩展下载
+7. 缓冲设置优化 CDN 资源的数据传输
+8. 通过访问 VS Code Server 并验证扩展正确加载来测试
 
 ## 架构支持
 
