@@ -113,7 +113,8 @@ docker run -d -p 8585:8585 \
 | `OPENCODE_SERVER_USERNAME` | OpenCode web username                                         | `opencode` |
 | `OPENCLAW_PORT`            | OpenClaw gateway port                                         | `18789`    |
 | `OPENCLAW_HOST`            | OpenClaw bind address                                         | `0.0.0.0`  |
-| `CLAW_GATEWAY_TOKEN`       | OpenClaw gateway token (recommended)                          | -          |
+| `OPENCLAW_GATEWAY_TOKEN`   | OpenClaw gateway token (recommended)                          | -          |
+| `OPENCLAW_TRUSTED_PROXIES` | OpenClaw trusted proxies (JSON array)                         | -          |
 | `LOG_RETENTION_DAYS`       | Log retention period (days)                                   | `3`        |
 
 ### Docker Compose Variables
@@ -201,7 +202,7 @@ Access OpenCode web interface:
 **OpenClaw Authentication (Token-based):**
 ```yaml
 environment:
-  - CLAW_GATEWAY_TOKEN=your-secure-random-token
+  - OPENCLAW_GATEWAY_TOKEN=your-secure-random-token
 ```
 
 Generate a secure token:
@@ -213,12 +214,26 @@ Access OpenClaw gateway:
 - Include token in API requests header or query parameter
 - Check OpenClaw docs for detailed authentication methods
 
+**OpenClaw Authentication (Trusted Proxy Mode):**
+For reverse proxy setups where authentication is handled by the proxy:
+```yaml
+environment:
+  - OPENCLAW_TRUSTED_PROXIES=["127.0.0.1", "::1"]
+```
+
+In trusted-proxy mode, OpenClaw trusts requests coming from the specified proxy addresses and does not require a token. The `OPENCLAW_TRUSTED_PROXIES` should be a JSON array containing:
+- IPv4 addresses (e.g., `["10.0.0.1"]`)
+- IPv6 addresses (e.g., `["::1"]`)
+- CIDR notation (e.g., `["10.0.0.0/8", "172.16.0.0/12"]`)
+
+When using trusted-proxy mode, `OPENCLAW_GATEWAY_TOKEN` is not required.
+
 **Full example with authentication:**
 ```yaml
 environment:
   - TOKEN=vscode-secret-token
   - OPENCODE_SERVER_PASSWORD=opencode-secret
-  - CLAW_GATEWAY_TOKEN=openclaw-secret-token
+  - OPENCLAW_GATEWAY_TOKEN=openclaw-secret-token
 ```
 
 ### Service Management Scripts

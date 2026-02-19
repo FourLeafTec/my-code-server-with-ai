@@ -91,46 +91,46 @@ docker run -d -p 8585:8585 \
 
 ### 环境变量
 
-| 变量名 | 说明 | 默认值 |
-|--------|------|--------|
-| `PORT` | VS Code Server 监听端口 | `8585` |
-| `HOST` | 所有服务的主机接口（VS Code、OpenCode、OpenClaw） | `0.0.0.0` |
-| `TOKEN` | 连接认证 token | 无 |
-| `TOKEN_FILE` | 包含 token 的文件路径 | - |
-| `PUID` | 用户 ID（用于数据卷权限） | `1000` |
-| `PGID` | 组 ID（用于数据卷权限） | `1000` |
-| `SERVER_DATA_DIR` | 服务器数据存储目录 | - |
-| `SERVER_BASE_PATH` | Web UI 基础路径 | - |
-| `SOCKET_PATH` | Socket 文件路径 | - |
-| `VERBOSE` | 启用详细输出 | `false` |
-| `LOG_LEVEL` | 日志级别（trace, debug, info, warn, error, critical, off） | - |
-| `USE_CDN_PROXY` | 启用 CDN 代理模式（需要 nginx 配置） | `false` |
-| `CDN_PROXY_HOST` | CDN 代理主机（当 USE_CDN_PROXY=true 时必需） | - |
-| `CLI_DATA_DIR` | CLI 元数据目录 | - |
-| `OPENCODE_PORT` | OpenCode 服务端口 | `4096` |
-| `OPENCODE_HOST` | OpenCode 绑定地址 | `0.0.0.0` |
-| `OPENCODE_SERVER_PASSWORD` | OpenCode web 密码（推荐） | - |
-| `OPENCODE_SERVER_USERNAME` | OpenCode web 用户名 | `opencode` |
-| `OPENCLAW_PORT` | OpenClaw 网关端口 | `18789` |
-| `OPENCLAW_HOST` | OpenClaw 绑定地址 | `0.0.0.0` |
-| `CLAW_GATEWAY_TOKEN` | OpenClaw 网关 token（推荐） | - |
-| `LOG_RETENTION_DAYS` | 日志保留天数 | `3` |
+| 变量名                     | 说明                                                       | 默认值     |
+| -------------------------- | ---------------------------------------------------------- | ---------- |
+| `PORT`                     | VS Code Server 监听端口                                    | `8585`     |
+| `HOST`                     | 所有服务的主机接口（VS Code、OpenCode、OpenClaw）          | `0.0.0.0`  |
+| `TOKEN`                    | 连接认证 token                                             | 无         |
+| `TOKEN_FILE`               | 包含 token 的文件路径                                      | -          |
+| `PUID`                     | 用户 ID（用于数据卷权限）                                  | `1000`     |
+| `PGID`                     | 组 ID（用于数据卷权限）                                    | `1000`     |
+| `SERVER_DATA_DIR`          | 服务器数据存储目录                                         | -          |
+| `SERVER_BASE_PATH`         | Web UI 基础路径                                            | -          |
+| `SOCKET_PATH`              | Socket 文件路径                                            | -          |
+| `VERBOSE`                  | 启用详细输出                                               | `false`    |
+| `LOG_LEVEL`                | 日志级别（trace, debug, info, warn, error, critical, off） | -          |
+| `USE_CDN_PROXY`            | 启用 CDN 代理模式（需要 nginx 配置）                       | `false`    |
+| `CDN_PROXY_HOST`           | CDN 代理主机（当 USE_CDN_PROXY=true 时必需）               | -          |
+| `CLI_DATA_DIR`             | CLI 元数据目录                                             | -          |
+| `OPENCODE_PORT`            | OpenCode 服务端口                                          | `4096`     |
+| `OPENCODE_HOST`            | OpenCode 绑定地址                                          | `0.0.0.0`  |
+| `OPENCODE_SERVER_PASSWORD` | OpenCode web 密码（推荐）                                  | -          |
+| `OPENCODE_SERVER_USERNAME` | OpenCode web 用户名                                        | `opencode` |
+| `OPENCLAW_PORT`            | OpenClaw 网关端口                                          | `18789`    |
+| `OPENCLAW_HOST`            | OpenClaw 绑定地址                                          | `0.0.0.0`  |
+| `OPENCLAW_GATEWAY_TOKEN`   | OpenClaw 网关 token（推荐）                                | -          |
+| `LOG_RETENTION_DAYS`       | 日志保留天数                                               | `3`        |
 
 ### Docker Compose 变量
 
 可以用环境变量或 `.env` 文件配置：
 
-| 变量名 | 说明 | 默认值 |
-|--------|------|--------|
-| `HOST_PORT` | 宿主机端口映射 | `8585` |
-| `CONTAINER_PORT` | 容器端口 | `8585` |
-| `TOKEN` | 认证 token | `sometoken` |
-| `PUID` | 用户 ID | `1000` |
-| `PGID` | 组 ID | `1000` |
-| `OPENCODE_HOST_PORT` | OpenCode 宿主机端口 | `4096` |
-| `OPENCODE_PORT` | OpenCode 容器端口 | `4096` |
-| `OPENCLAW_HOST_PORT` | OpenClaw 宿主机端口 | `18789` |
-| `OPENCLAW_PORT` | OpenClaw 容器端口 | `18789` |
+| 变量名               | 说明                | 默认值      |
+| -------------------- | ------------------- | ----------- |
+| `HOST_PORT`          | 宿主机端口映射      | `8585`      |
+| `CONTAINER_PORT`     | 容器端口            | `8585`      |
+| `TOKEN`              | 认证 token          | `sometoken` |
+| `PUID`               | 用户 ID             | `1000`      |
+| `PGID`               | 组 ID               | `1000`      |
+| `OPENCODE_HOST_PORT` | OpenCode 宿主机端口 | `4096`      |
+| `OPENCODE_PORT`      | OpenCode 容器端口   | `4096`      |
+| `OPENCLAW_HOST_PORT` | OpenClaw 宿主机端口 | `18789`     |
+| `OPENCLAW_PORT`      | OpenClaw 容器端口   | `18789`     |
 
 ### 自定义 UID/GID
 
@@ -147,10 +147,10 @@ docker run -d -p 8585:8585 \
 
 ### 可用服务
 
-| 服务 | 说明 | 默认端口 | CLI 命令 |
-|------|------|----------|----------|
-| **OpenCode** | 带 TUI 的 AI 编程助手 | `4096` | `opencode` |
-| **OpenClaw** | 个人 AI 助手网关 | `18789` | `openclaw` |
+| 服务         | 说明                  | 默认端口 | CLI 命令   |
+| ------------ | --------------------- | -------- | ---------- |
+| **OpenCode** | 带 TUI 的 AI 编程助手 | `4096`   | `opencode` |
+| **OpenClaw** | 个人 AI 助手网关      | `18789`  | `openclaw` |
 
 ### 端口配置
 
@@ -201,7 +201,7 @@ environment:
 **OpenClaw 认证（Token 方式）：**
 ```yaml
 environment:
-  - CLAW_GATEWAY_TOKEN=your-secure-random-token
+  - OPENCLAW_GATEWAY_TOKEN=your-secure-random-token
 ```
 
 生成安全 token：
@@ -218,7 +218,7 @@ openssl rand -hex 32
 environment:
   - TOKEN=vscode-secret-token
   - OPENCODE_SERVER_PASSWORD=opencode-secret
-  - CLAW_GATEWAY_TOKEN=openclaw-secret-token
+  - OPENCLAW_GATEWAY_TOKEN=openclaw-secret-token
 ```
 
 ### 服务管理脚本

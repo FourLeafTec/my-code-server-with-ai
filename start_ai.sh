@@ -13,7 +13,8 @@ OPENCLAW_HOST="${OPENCLAW_HOST:-${HOST:-0.0.0.0}}"
 # Authentication (optional)
 OPENCODE_SERVER_PASSWORD="${OPENCODE_SERVER_PASSWORD:-}"
 OPENCODE_SERVER_USERNAME="${OPENCODE_SERVER_USERNAME:-opencode}"
-CLAW_GATEWAY_TOKEN="${CLAW_GATEWAY_TOKEN:-}"
+OPENCLAW_GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-}"
+OPENCLAW_TRUSTED_PROXIES="${OPENCLAW_TRUSTED_PROXIES:-}"
 
 # Log retention days (default: 3)
 LOG_RETENTION_DAYS="${LOG_RETENTION_DAYS:-3}"
@@ -156,14 +157,61 @@ setup_openclaw_config() {
         BIND_MODE="loopback"
     fi
 
+    # Check for trusted proxies mode
+    if [ -n "$OPENCLAW_TRUSTED_PROXIES" ]; then
+        echo "[OpenClaw] Setting up trusted-proxy authentication mode..."
+        echo "[OpenClaw] Trusted proxies: $OPENCLAW_TRUSTED_PROXIES"
+        cat > "$CONFIG_DIR/config.json" << CONFIG_EOF
+{
+  "gateway": {
+    "mode": "local",
+    "bind": "$BIND_MODE",
+    "port": $OPENCLAW_PORT,
+    "trustedProxies": $OPENCLAW_TRUSTED_PROXIES,
+    "auth": {
+      "mode": "trusted-proxy",
+      "trustedProxy": {
+        "userHeader": "x-forwarded-user"
+      }
+    },
+    "controlUi": {
+      "allowInsecureAuth": true  
+    }
+  }
+}
+CONFIG_EOF
+        echo "[OpenClaw] Trusted-proxy authentication configured (bind mode: $BIND_MODE)"
+        # Export for use in gateway command
+        export OPENCLAW_TRUSTED_PROXIES
     # If no token provided, generate a default one for lan mode
-    if [ -z "$CLAW_GATEWAY_TOKEN" ] && [ "$BIND_MODE" = "lan" ]; then
-        CLAW_GATEWAY_TOKEN=$(openssl rand -hex 32 2>/dev/null || echo "default-token-$(date +%s)")
-        echo "[OpenClaw] Generated default token for lan mode: $CLAW_GATEWAY_TOKEN"
-        echo "[OpenClaw] For production, set CLAW_GATEWAY_TOKEN environment variable"
-    fi
+    elif [ -z "$OPENCLAW_GATEWAY_TOKEN" ] && [ "$BIND_MODE" = "lan" ]; then
+        OPENCLAW_GATEWAY_TOKEN=$(openssl rand -hex 32 2>/dev/null || echo "default-token-$(date +%s)")
+        echo "[OpenClaw] Generated default token for lan mode: $OPENCLAW_GATEWAY_TOKEN"
+        echo "[OpenClaw] For production, set OPENCLAW_GATEWAY_TOKEN environment variable"
 
-    if [ -n "$CLAW_GATEWAY_TOKEN" ]; then
+        if [ -n "$OPENCLAW_GATEWAY_TOKEN" ]; then
+            echo "[OpenClaw] Setting up authentication..."
+            cat > "$CONFIG_DIR/config.json" << CONFIG_EOF
+{
+  "gateway": {
+    "mode": "local",
+    "bind": "$BIND_MODE",
+    "port": $OPENCLAW_PORT,
+    "auth": {
+      "mode": "token",
+      "token": "$OPENCLAW_GATEWAY_TOKEN"
+    },
+    "controlUi": {
+      "allowInsecureAuth": true  
+    }
+  }
+}
+CONFIG_EOF
+            echo "[OpenClaw] Token authentication configured (bind mode: $BIND_MODE)"
+            # Export for use in gateway command
+            export OPENCLAW_GATEWAY_TOKEN
+        fi
+    elif [ -n "$OPENCLAW_GATEWAY_TOKEN" ]; then
         echo "[OpenClaw] Setting up authentication..."
         cat > "$CONFIG_DIR/config.json" << CONFIG_EOF
 {
@@ -173,17 +221,20 @@ setup_openclaw_config() {
     "port": $OPENCLAW_PORT,
     "auth": {
       "mode": "token",
-      "token": "$CLAW_GATEWAY_TOKEN"
+      "token": "$OPENCLAW_GATEWAY_TOKEN"
+    },
+    "controlUi": {
+      "allowInsecureAuth": true  
     }
   }
 }
 CONFIG_EOF
         echo "[OpenClaw] Token authentication configured (bind mode: $BIND_MODE)"
         # Export for use in gateway command
-        export CLAW_GATEWAY_TOKEN
+        export OPENCLAW_GATEWAY_TOKEN
     else
-        echo "[WARNING] CLAW_GATEWAY_TOKEN not set - OpenClaw will start without authentication"
-        echo "[WARNING] For security, please set CLAW_GATEWAY_TOKEN environment variable"
+        echo "[WARNING] OPENCLAW_GATEWAY_TOKEN not set - OpenClaw will start without authentication"
+        echo "[WARNING] For security, please set OPENCLAW_GATEWAY_TOKEN environment variable"
     fi
 }
 
