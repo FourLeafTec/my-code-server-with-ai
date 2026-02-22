@@ -16,10 +16,13 @@
 #   - JavaScript source map references (debugging only)
 #
 # Usage:
-#   docker exec -it my-code-server-with-ai /app/fix-cdn-proxy-minimal.sh
+#   docker exec -it my-code-server-with-cdn-fix /app/fix-cdn-proxy-minimal.sh
 #
-# Author: Auto-generated for my-code-server-with-ai
+# Author: Auto-generated for my-code-server-with-cdn-fix
 ################################################################################
+
+USERNAME=${USERNAME:-vscodeuser}
+USER_HOME="/home/$USERNAME"
 
 set -e
 
@@ -196,7 +199,7 @@ echo "Patching CLI Serve-Web Files (Dynamic Path)"
 echo "=========================================="
 
 # Find the dynamic hash directory (pattern: [a-f0-9]{40})
-CLI_WEB_DIR="/home/vscodeuser/.vscode/cli/serve-web"
+CLI_WEB_DIR="$USER_HOME/.vscode/cli/serve-web"
 HASH_DIR=$(find "$CLI_WEB_DIR" -maxdepth 1 -type d -name '[a-f0-9]*' 2>/dev/null | head -1)
 
 if [ -n "$HASH_DIR" ] && [ -d "$HASH_DIR" ]; then

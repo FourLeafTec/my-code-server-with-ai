@@ -55,25 +55,15 @@ RUN ARCH=$(dpkg --print-architecture) && \
     echo "WARNING: VS Code is not available for architecture: $TARGETARCH$TARGETVARIANT ($ARCH) - container will be built without VS Code"; \
     fi
 
-# Install OpenCode CLI
-RUN npm install -g opencode-ai
-
-# Install oh-my-opencode
-RUN npm install -g oh-my-opencode
-
-# Install OpenClaw (skip onboarding wizard for silent install)
-RUN curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard
-
 # Additional cleanup
 RUN apt-get clean autoclean && \
     apt-get autoremove --yes && \
     rm -rf /var/lib/{apt,dpkg,cache,log}/
-
 # COPY startup scripts
-COPY start.sh start_ai.sh restart.sh update.sh vscode-wrapper.sh fix-cdn-proxy.sh /app/
+COPY start.sh fix-cdn-proxy.sh /app/
 
 # Make scripts executable
-RUN chmod +x /app/start.sh /app/start_ai.sh /app/restart.sh /app/update.sh /app/vscode-wrapper.sh /app/fix-cdn-proxy.sh
+RUN chmod +x /app/start.sh /app/fix-cdn-proxy.sh
 
 # Create a non-root user with default UID/GID (will be adjustable at runtime via env vars)
 RUN groupadd -g 1000 vscodeuser && \

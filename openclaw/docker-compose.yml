@@ -1,0 +1,20 @@
+services:
+  openclaw:
+    container_name: ${CONTAINER_NAME:-openclaw}
+    image: ${IMAGE_NAME:-openclaw:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${HOST_PORT:-18789}:${OPENCLAW_PORT:-18789}"
+    environment:
+      - OPENCLAW_PORT=${OPENCLAW_PORT:-18789}
+      - OPENCLAW_HOST=${OPENCLAW_HOST:-0.0.0.0}
+      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN:-}
+      - OPENCLAW_TRUSTED_PROXIES=${OPENCLAW_TRUSTED_PROXIES:-}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-998}
+    volumes:
+      - "${DATA_DIR:-./data}:/home/openclawuser/"
+    init: true
+    restart: unless-stopped

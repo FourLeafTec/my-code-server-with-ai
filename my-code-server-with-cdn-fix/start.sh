@@ -2,72 +2,75 @@
 
 echo "my-code-server debian container"
 
-if [ -d /home/vscodeuser ]; then
-    current_owner=$(stat -c %U:%G /home/vscodeuser 2>/dev/null || stat -f %u:%g /home/vscodeuser 2>/dev/null)
-    vscodeuser_uid=$(id -u vscodeuser)
-    vscodeuser_gid=$(id -g vscodeuser)
-    expected_owner="${vscodeuser_uid}:${vscodeuser_gid}"
+USERNAME=${USERNAME:-vscodeuser}
+USER_HOME="/home/$USERNAME"
+
+if [ -d "$USER_HOME" ]; then
+    current_owner=$(stat -c %U:%G "$USER_HOME" 2>/dev/null || stat -f %u:%g "$USER_HOME" 2>/dev/null)
+    user_uid=$(id -u "$USERNAME")
+    user_gid=$(id -g "$USERNAME")
+    expected_owner="${user_uid}:${user_gid}"
     
     if [ "$current_owner" != "$expected_owner" ]; then
-        echo "Fixing /home/vscodeuser permissions (current: $current_owner, expected: $expected_owner)..."
-        chown -R "$expected_owner" /home/vscodeuser
-        chmod -R 755 /home/vscodeuser
+        echo "Fixing $USER_HOME permissions (current: $current_owner, expected: $expected_owner)..."
+        chown -R "$expected_owner" "$USER_HOME"
+        chmod -R 755 "$USER_HOME"
         echo "Permissions fixed successfully"
     fi
 else
-    echo "Creating /home/vscodeuser directory with correct ownership..."
-    vscodeuser_uid=$(id -u vscodeuser)
-    vscodeuser_gid=$(id -g vscodeuser)
-    mkdir -p /home/vscodeuser
-    chown -R "${vscodeuser_uid}:${vscodeuser_gid}" /home/vscodeuser
-    chmod -R 755 /home/vscodeuser
+    echo "Creating $USER_HOME directory with correct ownership..."
+    user_uid=$(id -u "$USERNAME")
+    user_gid=$(id -g "$USERNAME")
+    mkdir -p "$USER_HOME"
+    chown -R "${user_uid}:${user_gid}" "$USER_HOME"
+    chmod -R 755 "$USER_HOME"
     echo "Directory created and permissions set"
 fi
 
 # Handle UID/GID changes if environment variables are set
 if [ -n "$PUID" ] || [ -n "$PGID" ]; then
-  CURRENT_UID=$(id -u vscodeuser)
-  CURRENT_GID=$(id -g vscodeuser)
+  CURRENT_UID=$(id -u "$USERNAME")
+  CURRENT_GID=$(id -g "$USERNAME")
   TARGET_UID=${PUID:-$CURRENT_UID}
   TARGET_GID=${PGID:-$CURRENT_GID}
-  
+
   if [ "$CURRENT_UID" != "$TARGET_UID" ] || [ "$CURRENT_GID" != "$TARGET_GID" ]; then
-    echo "Changing vscodeuser UID:GID from $CURRENT_UID:$CURRENT_GID to $TARGET_UID:$TARGET_GID"
-    
+    echo "Changing $USERNAME UID:GID from $CURRENT_UID:$CURRENT_GID to $TARGET_UID:$TARGET_GID"
+
     # Check if target UID already exists
     EXISTING_USER=$(getent passwd $TARGET_UID | cut -d: -f1)
-    if [ -n "$EXISTING_USER" ] && [ "$EXISTING_USER" != "vscodeuser" ]; then
+    if [ -n "$EXISTING_USER" ] && [ "$EXISTING_USER" != "$USERNAME" ]; then
       echo "WARNING: UID $TARGET_UID already exists for user '$EXISTING_USER'"
       echo "Removing conflicting user '$EXISTING_USER'"
       userdel $EXISTING_USER
     fi
-    
+
     # Check if target GID already exists
     EXISTING_GROUP=$(getent group $TARGET_GID | cut -d: -f1)
-    
-    if [ -n "$EXISTING_GROUP" ] && [ "$EXISTING_GROUP" != "vscodeuser" ]; then
-      # GID exists, use the existing group
+
+    if [ -n "$EXISTING_GROUP" ] && [ "$EXISTING_GROUP" != "$USERNAME" ]; then
+      # GID exists, use existing group
       echo "GID $TARGET_GID already exists as group '$EXISTING_GROUP', using it"
-      usermod -u $TARGET_UID -g $TARGET_GID vscodeuser
+      usermod -u $TARGET_UID -g $TARGET_GID "$USERNAME"
     else
-      # GID doesn't exist or belongs to vscodeuser, safe to modify
+      # GID doesn't exist or belongs to $USERNAME, safe to modify
       if [ "$CURRENT_GID" != "$TARGET_GID" ]; then
-        groupmod -g $TARGET_GID vscodeuser
+        groupmod -g $TARGET_GID "$USERNAME"
       fi
       if [ "$CURRENT_UID" != "$TARGET_UID" ]; then
-        usermod -u $TARGET_UID vscodeuser
+        usermod -u $TARGET_UID "$USERNAME"
       fi
     fi
-    
+
     # Fix permissions on home directory
-    chown -R $TARGET_UID:$TARGET_GID /home/vscodeuser
-    
-    echo "UID/GID changed successfully to $(id -u vscodeuser):$(id -g vscodeuser)"
+    chown -R $TARGET_UID:$TARGET_GID "$USER_HOME"
+
+    echo "UID/GID changed successfully to $(id -u "$USERNAME"):$(id -g "$USERNAME")"
   else
     echo "Using default UID:GID $CURRENT_UID:$CURRENT_GID"
   fi
 else
-  echo "Using default UID:GID $(id -u vscodeuser):$(id -g vscodeuser)"
+  echo "Using default UID:GID $(id -u "$USERNAME"):$(id -g "$USERNAME")"
 fi
 
 # Check if PORT environment variable is set, default to 8585 if not
@@ -141,23 +144,15 @@ if [ -n "$CLI_DATA_DIR" ]; then
   CMD="$CMD --cli-data-dir $CLI_DATA_DIR"
 fi
 
-# Start AI services in background
-echo "Starting AI services..."
-env CDN_PROXY_HOST="${CDN_PROXY_HOST}" \
-    USE_CDN_PROXY="${USE_CDN_PROXY}" \
-    OPENCODE_HOST="${OPENCODE_HOST}" \
-    OPENCODE_PORT="${OPENCODE_PORT}" \
-    OPENCLAW_HOST="${OPENCLAW_HOST}" \
-    OPENCLAW_PORT="${OPENCLAW_PORT}" \
-    OPENCODE_SERVER_PASSWORD="${OPENCODE_SERVER_PASSWORD}" \
-    OPENCODE_SERVER_USERNAME="${OPENCODE_SERVER_USERNAME}" \
-    OPENCLAW_GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN}" \
-    OPENCLAW_TRUSTED_PROXIES="${OPENCLAW_TRUSTED_PROXIES}" \
-    HOLD_CONTAINER=true \
-    su vscodeuser -c "/app/start_ai.sh" &
-AI_SERVICES_PID=$!
+# Apply CDN proxy fix if enabled
+if [ "$USE_CDN_PROXY" = "true" ]; then
+  if [ -n "$CDN_PROXY_HOST" ]; then
+    echo "Applying CDN proxy configuration..."
+    CDN_PROXY_HOST="$CDN_PROXY_HOST" /app/fix-cdn-proxy.sh
+  else
+    echo "WARNING: USE_CDN_PROXY=true but CDN_PROXY_HOST is not set, skipping CDN proxy configuration"
+  fi
+fi
 
-echo "All services started"
-echo "Container will be held by AI services process"
-
-wait $AI_SERVICES_PID
+echo "Starting VSCode Server with command: $CMD"
+exec $CMD

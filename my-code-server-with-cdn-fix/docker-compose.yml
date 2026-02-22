@@ -1,0 +1,22 @@
+services:
+  vscode-server:
+    container_name: ${CONTAINER_NAME:-vscode-server}
+    image: ${IMAGE_NAME:-my-code-server-with-cdn-fix:main}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${HOST_PORT:-8585}:${CONTAINER_PORT:-8585}"
+    environment:
+      - PORT=${CONTAINER_PORT:-8585}
+      - TOKEN=${TOKEN:-sometoken}
+      - HOST=${HOST:-0.0.0.0}
+      - USE_CDN_PROXY=${USE_CDN_PROXY:-false}
+      - CDN_PROXY_HOST=${CDN_PROXY_HOST:-}
+      - USERNAME=${USERNAME:-vscodeuser}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-998}
+    volumes:
+      - "${DATA_DIR:-./data}:/home/${USERNAME:-vscodeuser}/"
+    init: true
+    restart: unless-stopped
