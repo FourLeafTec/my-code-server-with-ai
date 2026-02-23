@@ -66,15 +66,15 @@ COPY start.sh fix-cdn-proxy.sh /app/
 RUN chmod +x /app/start.sh /app/fix-cdn-proxy.sh
 
 # Create a non-root user with default UID/GID (will be adjustable at runtime via env vars)
-RUN groupadd -g 1000 vscodeuser && \
-    useradd -m -u 1000 -g 1000 -s /bin/bash vscodeuser && \
-    echo 'vscodeuser ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/vscodeuser && \
-    chmod 0440 /etc/sudoers.d/vscodeuser && \
-    usermod -aG sudo vscodeuser
+RUN groupadd -g 1000 coder && \
+    useradd -m -u 1000 -g 1000 -s /bin/bash coder && \
+    echo 'coder ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/coder && \
+    chmod 0440 /etc/sudoers.d/coder && \
+    usermod -aG sudo coder
 
 RUN chmod 755 /usr/share/code
 
-# Don't switch to vscodeuser yet - start.sh will handle it
-ENV HOME=/home/vscodeuser
+# Don't switch to coder yet - start.sh will handle it
+ENV HOME=/home/coder
 
 ENTRYPOINT ["/app/start.sh"]

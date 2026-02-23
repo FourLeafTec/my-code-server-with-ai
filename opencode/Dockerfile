@@ -29,12 +29,12 @@ COPY start.sh /app/
 
 RUN chmod +x /app/start.sh
 
-RUN groupadd -g 1000 opencodeuser && \
-    useradd -m -u 1000 -g 1000 -s /bin/bash opencodeuser && \
-    echo 'opencodeuser ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/opencodeuser && \
-    chmod 0440 /etc/sudoers.d/opencodeuser && \
-    usermod -aG sudo opencodeuser
+RUN groupadd -g 1000 coder && \
+    useradd -m -u 1000 -g 1000 -s /bin/bash coder && \
+    echo 'coder ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/coder && \
+    chmod 0440 /etc/sudoers.d/coder && \
+    usermod -aG sudo coder
 
-ENV HOME=/home/opencodeuser
+ENV HOME=/home/coder
 
 ENTRYPOINT ["/app/start.sh"]
