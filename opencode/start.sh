@@ -22,18 +22,15 @@ if [ -n "$PUID" ] || [ -n "$PGID" ]; then
     EXISTING_GROUP=$(getent group $TARGET_GID | cut -d: -f1)
 
     if [ -n "$EXISTING_GROUP" ] && [ "$EXISTING_GROUP" != "$USERNAME" ]; then
-      echo "GID $TARGET_GID already exists as group '$EXISTING_GROUP', using it"
-      usermod -u $TARGET_UID -g $TARGET_GID "$USERNAME"
-    else
-      if [ "$CURRENT_GID" != "$TARGET_GID" ]; then
-        groupmod -g $TARGET_GID "$USERNAME"
-      fi
-      if [ "$CURRENT_UID" != "$TARGET_UID" ]; then
-        usermod -u $TARGET_UID "$USERNAME"
+      echo "GID $TARGET_GID already exists as group '$EXISTING_GROUP', adding $USERNAME to it"
+      if ! groups "$USERNAME" 2>/dev/null | grep -qw "$EXISTING_GROUP"; then
+        usermod -aG "$EXISTING_GROUP" "$USERNAME"
       fi
     fi
 
-    chown -R $TARGET_UID:$TARGET_GID "$USER_HOME"
+    if [ "$CURRENT_UID" != "$TARGET_UID" ]; then
+      usermod -u $TARGET_UID "$USERNAME"
+    fi
 
     echo "UID/GID changed successfully to $(id -u "$USERNAME"):$(id -g "$USERNAME")"
   else
@@ -42,6 +39,8 @@ if [ -n "$PUID" ] || [ -n "$PGID" ]; then
 else
   echo "Using default UID:GID $(id -u "$USERNAME"):$(id -g "$USERNAME")"
 fi
+
+export PATH="/usr/local/bin:$PATH"
 
 OPENCODE_PORT=${OPENCODE_PORT:-4096}
 OPENCODE_HOST=${OPENCODE_HOST:-${HOST:-0.0.0.0}}
@@ -60,4 +59,12 @@ fi
 export OPENCODE_SERVER_PASSWORD
 export OPENCODE_SERVER_USERNAME
 
-exec su "$USERNAME" -c "opencode serve --hostname \"$OPENCODE_HOST\" --port \"$OPENCODE_PORT\""
+GOSU_GROUP="$USERNAME"
+if [ -n "$PGID" ]; then
+  PGID_GROUP=$(getent group $PGID | cut -d: -f1)
+  if [ -n "$PGID_GROUP" ] && [ "$PGID_GROUP" != "$USERNAME" ]; then
+    GOSU_GROUP="$PGID_GROUP"
+  fi
+fi
+
+exec gosu "$USERNAME:$GOSU_GROUP" opencode serve --hostname "$OPENCODE_HOST" --port "$OPENCODE_PORT"

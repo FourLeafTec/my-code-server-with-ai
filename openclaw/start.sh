@@ -1,9 +1,9 @@
 #!/bin/bash
-# OpenClaw 智能配置启动脚本
-# 核心逻辑：config 不存在则生成，存在则尝试使用 openclaw config set 更新
+# OpenClaw configuration startup script
+# Core logic: generate config if not exists, update with openclaw config set if exists
 
 # =============================================================================
-# 用户配置
+# User configuration
 # =============================================================================
 
 USERNAME=${USERNAME:-coder}
@@ -11,14 +11,60 @@ USER_HOME="/home/coder"
 CONFIG_DIR="$USER_HOME/.openclaw"
 CONFIG_FILE="$CONFIG_DIR/config.json"
 
-# 导出配置路径（官方命令可能需要）
-export OPENCLAW_CONFIG_PATH="$CONFIG_FILE"
-
-# 添加 npm global bin 到 PATH (openclaw 安装路径)
-export PATH="$HOME/.npm-global/bin:$PATH"
+# Add /usr/sbin to PATH for gosu
+export PATH="/home/coder/.npm-global/bin:/usr/local/bin:/usr/sbin:$PATH"
 
 # =============================================================================
-# 网络配置
+# UID/GID handling
+# =============================================================================
+
+if [ -n "$PUID" ] || [ -n "$PGID" ]; then
+  CURRENT_UID=$(id -u "$USERNAME")
+  CURRENT_GID=$(id -g "$USERNAME")
+  TARGET_UID=${PUID:-$CURRENT_UID}
+  TARGET_GID=${PGID:-$CURRENT_GID}
+
+  if [ "$CURRENT_UID" != "$TARGET_UID" ] || [ "$CURRENT_GID" != "$TARGET_GID" ]; then
+    echo "Changing $USERNAME UID:GID from $CURRENT_UID:$CURRENT_GID to $TARGET_UID:$TARGET_GID"
+
+    EXISTING_USER=$(getent passwd $TARGET_UID | cut -d: -f1)
+    if [ -n "$EXISTING_USER" ] && [ "$EXISTING_USER" != "$USERNAME" ]; then
+      echo "WARNING: UID $TARGET_UID already exists for user '$EXISTING_USER'"
+      echo "Removing conflicting user '$EXISTING_USER'"
+      userdel $EXISTING_USER
+    fi
+
+    EXISTING_GROUP=$(getent group $TARGET_GID | cut -d: -f1)
+
+    if [ -n "$EXISTING_GROUP" ] && [ "$EXISTING_GROUP" != "$USERNAME" ]; then
+      echo "GID $TARGET_GID already exists as group '$EXISTING_GROUP', adding $USERNAME to it"
+      if ! groups "$USERNAME" 2>/dev/null | grep -qw "$EXISTING_GROUP"; then
+        usermod -aG "$EXISTING_GROUP" "$USERNAME"
+      fi
+    fi
+
+    if [ "$CURRENT_UID" != "$TARGET_UID" ]; then
+      usermod -u $TARGET_UID "$USERNAME"
+    fi
+
+    echo "UID/GID changed successfully to $(id -u "$USERNAME"):$(id -g "$USERNAME")"
+  else
+    echo "Using default UID:GID $CURRENT_UID:$CURRENT_GID"
+  fi
+else
+  echo "Using default UID:GID $(id -u "$USERNAME"):$(id -g "$USERNAME")"
+fi
+
+GOSU_GROUP="$USERNAME"
+if [ -n "$PGID" ]; then
+  PGID_GROUP=$(getent group $PGID | cut -d: -f1)
+  if [ -n "$PGID_GROUP" ] && [ "$PGID_GROUP" != "$USERNAME" ]; then
+    GOSU_GROUP="$PGID_GROUP"
+  fi
+fi
+
+# =============================================================================
+# Network configuration
 # =============================================================================
 
 DEFAULT_PORT=18789
@@ -27,14 +73,14 @@ OPENCLAW_PORT=${OPENCLAW_PORT:-$DEFAULT_PORT}
 OPENCLAW_HOST=${OPENCLAW_HOST:-$DEFAULT_HOST}
 
 # =============================================================================
-# 认证配置
+# Authentication configuration
 # =============================================================================
 
 OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN:-}
 OPENCLAW_TRUSTED_PROXIES=${OPENCLAW_TRUSTED_PROXIES:-}
 
 # =============================================================================
-# 日志函数
+# Logging functions
 # =============================================================================
 
 log() {
@@ -48,12 +94,13 @@ log_config() {
     log "Config Path: $CONFIG_FILE"
     log "User: $USERNAME"
     log "Home: $USER_HOME"
+    log "Host: $OPENCLAW_HOST"
     log "Port: $OPENCLAW_PORT"
     echo "========================================="
 }
 
 # =============================================================================
-# 检查配置文件是否存在
+# Check if config file exists
 # =============================================================================
 
 check_config() {
@@ -67,21 +114,19 @@ check_config() {
 }
 
 # =============================================================================
-# 生成新配置
+# Generate new configuration
 # =============================================================================
 
 generate_config() {
     log "Generating new configuration..."
     
-    # 确保目录存在
     mkdir -p "$CONFIG_DIR"
     
-    # 生成新配置（使用 loopback 作为默认 bind 值）
-    cat > "$CONFIG_FILE" << CONFIG_EOF
+    cat > "$CONFIG_FILE" << 'CONFIG_EOF'
 {
   "gateway": {
     "mode": "local",
-    "bind": "loopback",
+    "bind": "$OPENCLAW_HOST",
     "port": $OPENCLAW_PORT,
     "auth": {
       "mode": "token",
@@ -99,52 +144,37 @@ CONFIG_EOF
 }
 
 # =============================================================================
-# 尝试使用 openclaw config set 更新配置
+# Update configuration with openclaw config set
 # =============================================================================
 
 update_with_openclaw_config() {
     log "Attempting to update configuration using 'openclaw config set' command..."
     
-    # 检查 openclaw 命令是否可用
     if ! command -v openclaw &>/dev/null; then
         log "OpenClaw CLI not found or not accessible"
         log "Using existing configuration without changes"
-        log "To update config manually, use the OpenClaw dashboard or edit the config file"
+        log "To update config manually, use the OpenClaw dashboard or edit config file"
         return 1
     fi
     
-    # 尝试使用 openclaw config 命令更新配置
-    # 注意：这里假设 openclaw config 支持以下语法
-    # 如果实际语法不同，需要根据 OpenClaw 版本调整
-    
-    # 更新端口（如果环境变量有值）
     if [ "$OPENCLAW_PORT" != "$DEFAULT_PORT" ]; then
         log "Updating gateway.port to $OPENCLAW_PORT"
-        # 假设命令格式（需要根据实际情况调整）
-        # 方式 A: openclaw config set gateway.port $OPENCLAW_PORT
-        # 方式 B: openclaw config --set gateway.port=$OPENCLAW_PORT
-        # 尝试方式 A，如果失败则方式 B
-        
-        openclaw config set gateway.port $OPENCLAW_PORT 2>/dev/null || \
-        openclaw config --set gateway.port=$OPENCLAW_PORT 2>/dev/null || \
+        openclaw config set gateway.port $OPENCLAW_PORT 2>/dev/null || \\
+        openclaw config --set gateway.port=$OPENCLAW_PORT 2>/dev/null || \\
         log "Failed to update gateway.port via CLI"
     fi
     
-    # 更新绑定地址（如果环境变量有值）
     if [ "$OPENCLAW_HOST" != "$DEFAULT_HOST" ]; then
         log "Updating gateway.bind to $OPENCLAW_HOST"
-        
-        openclaw config set gateway.bind $OPENCLAW_HOST 2>/dev/null || \
-        openclaw config --set gateway.bind=$OPENCLAW_HOST 2>/dev/null || \
+        openclaw config set gateway.bind $OPENCLAW_HOST 2>/dev/null || \\
+        openclaw config --set gateway.bind=$OPENCLAW_HOST 2>/dev/null || \\
         log "Failed to update gateway.bind via CLI"
     fi
     
-    # 更新令牌（如果环境变量有值）
     if [ -n "$OPENCLAW_GATEWAY_TOKEN" ]; then
         log "Updating gateway.auth.token"
-        
-        openclaw config set gateway.auth.token $OPENCLAW_GATEWAY_TOKEN 2>/dev/null || \
-        openclaw config --set gateway.auth.token=$OPENCLAW_GATEWAY_TOKEN 2>/dev/null || \
+        openclaw config set gateway.auth.token $OPENCLAW_GATEWAY_TOKEN 2>/dev/null || \\
+        openclaw config --set gateway.auth.token=$OPENCLAW_GATEWAY_TOKEN 2>/dev/null || \\
         log "Failed to update gateway.auth.token via CLI"
     fi
     
@@ -152,22 +182,16 @@ update_with_openclaw_config() {
 }
 
 # =============================================================================
-# 主配置逻辑
+# Main configuration logic
 # =============================================================================
 
 main() {
     log_config
-
-    # 强制重新生成配置
-    if [ "$FORCE_REGENERATE_CONFIG" = "true" ]; then
-        log "FORCE_REGENERATE_CONFIG=true, regenerating configuration..."
-        generate_config
-        return 0
-    fi
-
-    # 配置存在时更新，不存在时生成
+    
+    mkdir -p "$CONFIG_DIR"
+    
     if check_config; then
-        log "Configuration exists, updating via openclaw config set..."
+        log "Configuration exists, attempting to update using 'openclaw config set' command..."
         update_with_openclaw_config
     else
         generate_config
@@ -175,10 +199,13 @@ main() {
 }
 
 # =============================================================================
-# 执行
+# Execute
 # =============================================================================
 
 main "$@"
 
-# 启动 OpenClaw
-exec openclaw gateway
+# Export config path (official command may need it)
+export OPENCLAW_CONFIG_PATH="$CONFIG_FILE"
+
+# Start OpenClaw gateway using openclaw command
+exec /usr/sbin/gosu "$USERNAME:$GOSU_GROUP" /home/coder/.npm-global/bin/openclaw gateway

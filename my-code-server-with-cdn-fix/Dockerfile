@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     gnupg2 \
     sudo \
+    gosu \
     nano \
     git \
     unzip \
@@ -77,6 +78,6 @@ RUN chmod 755 /usr/share/code
 # Don't switch to coder yet - start.sh will handle it
 ENV HOME=/home/coder
 
-USER coder
+USER root
 
 ENTRYPOINT ["/app/start.sh"]

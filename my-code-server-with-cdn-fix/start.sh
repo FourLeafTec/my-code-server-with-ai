@@ -5,28 +5,6 @@ echo "my-code-server debian container"
 USERNAME=${USERNAME:-coder}
 USER_HOME="/home/coder"
 
-if [ -d "$USER_HOME" ]; then
-    current_owner=$(stat -c %U:%G "$USER_HOME" 2>/dev/null || stat -f %u:%g "$USER_HOME" 2>/dev/null)
-    user_uid=$(id -u "$USERNAME")
-    user_gid=$(id -g "$USERNAME")
-    expected_owner="${user_uid}:${user_gid}"
-    
-    if [ "$current_owner" != "$expected_owner" ]; then
-        echo "Fixing $USER_HOME permissions (current: $current_owner, expected: $expected_owner)..."
-        chown -R "$expected_owner" "$USER_HOME"
-        chmod -R 755 "$USER_HOME"
-        echo "Permissions fixed successfully"
-    fi
-else
-    echo "Creating $USER_HOME directory with correct ownership..."
-    user_uid=$(id -u "$USERNAME")
-    user_gid=$(id -g "$USERNAME")
-    mkdir -p "$USER_HOME"
-    chown -R "${user_uid}:${user_gid}" "$USER_HOME"
-    chmod -R 755 "$USER_HOME"
-    echo "Directory created and permissions set"
-fi
-
 # Handle UID/GID changes if environment variables are set
 if [ -n "$PUID" ] || [ -n "$PGID" ]; then
   CURRENT_UID=$(id -u "$USERNAME")
@@ -49,21 +27,15 @@ if [ -n "$PUID" ] || [ -n "$PGID" ]; then
     EXISTING_GROUP=$(getent group $TARGET_GID | cut -d: -f1)
 
     if [ -n "$EXISTING_GROUP" ] && [ "$EXISTING_GROUP" != "$USERNAME" ]; then
-      # GID exists, use existing group
-      echo "GID $TARGET_GID already exists as group '$EXISTING_GROUP', using it"
-      usermod -u $TARGET_UID -g $TARGET_GID "$USERNAME"
-    else
-      # GID doesn't exist or belongs to $USERNAME, safe to modify
-      if [ "$CURRENT_GID" != "$TARGET_GID" ]; then
-        groupmod -g $TARGET_GID "$USERNAME"
-      fi
-      if [ "$CURRENT_UID" != "$TARGET_UID" ]; then
-        usermod -u $TARGET_UID "$USERNAME"
+      echo "GID $TARGET_GID already exists as group '$EXISTING_GROUP', adding $USERNAME to it"
+      if ! groups "$USERNAME" 2>/dev/null | grep -qw "$EXISTING_GROUP"; then
+        usermod -aG "$EXISTING_GROUP" "$USERNAME"
       fi
     fi
 
-    # Fix permissions on home directory
-    chown -R $TARGET_UID:$TARGET_GID "$USER_HOME"
+    if [ "$CURRENT_UID" != "$TARGET_UID" ]; then
+      usermod -u $TARGET_UID "$USERNAME"
+    fi
 
     echo "UID/GID changed successfully to $(id -u "$USERNAME"):$(id -g "$USERNAME")"
   else
@@ -155,4 +127,13 @@ if [ "$USE_CDN_PROXY" = "true" ]; then
 fi
 
 echo "Starting VSCode Server with command: $CMD"
-exec $CMD
+
+GOSU_GROUP="$USERNAME"
+if [ -n "$PGID" ]; then
+  PGID_GROUP=$(getent group $PGID | cut -d: -f1)
+  if [ -n "$PGID_GROUP" ] && [ "$PGID_GROUP" != "$USERNAME" ]; then
+    GOSU_GROUP="$PGID_GROUP"
+  fi
+fi
+
+exec gosu "$USERNAME:$GOSU_GROUP" $CMD

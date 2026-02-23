@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     gnupg2 \
     sudo \
+    gosu \
     nano \
     && rm -rf /var/lib/{apt,dpkg,cache,log}/
 
@@ -37,6 +38,6 @@ RUN groupadd -g 1000 coder && \
 
 ENV HOME=/home/coder
 
-USER coder
+USER root
 
 ENTRYPOINT ["/app/start.sh"]
