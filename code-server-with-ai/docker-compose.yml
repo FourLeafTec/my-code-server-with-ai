@@ -2,7 +2,7 @@ services:
   vscode-server:
     container_name: ${CONTAINER_NAME:-my-code-server-with-cdn-fix}
     image: my-code-server-with-cdn-fix:latest
-    build: 
+    build:
       context: ../my-code-server-with-cdn-fix
       dockerfile: Dockerfile
     ports:
@@ -14,7 +14,7 @@ services:
       - USE_CDN_PROXY=${USE_CDN_PROXY:-false}
       - CDN_PROXY_HOST=${CDN_PROXY_HOST}
       - PUID=${PUID:-1000}
-      - PGID=${PGID:-998}
+      - PGID=${PGID:-1000}
     volumes:
       - "${DATA_DIR:-/home/ubuntu/appdata/my-code-server-with-cdn-fix}:/home/coder/"
     init: true
@@ -34,7 +34,7 @@ services:
       - OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD}
       - OPENCODE_SERVER_USERNAME=${OPENCODE_SERVER_USERNAME:-opencode}
       - PUID=${PUID:-1000}
-      - PGID=${PGID:-998}
+      - PGID=${PGID:-1000}
     init: true
     networks:
       - vscode-server-network
@@ -52,7 +52,7 @@ services:
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}
       - OPENCLAW_TRUSTED_PROXIES=${OPENCLAW_TRUSTED_PROXIES}
       - PUID=${PUID:-1000}
-      - PGID=${PGID:-998}
+      - PGID=${PGID:-1000}
     init: true
     networks:
       - vscode-server-network

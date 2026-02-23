@@ -8,17 +8,21 @@ RUN apt-get update && apt-get install -y \
     nano \
     && rm -rf /var/lib/{apt,dpkg,cache,log}/
 
-RUN curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard
-
-RUN apt-get clean autoclean && \
-    apt-get autoremove --yes && \
-    rm -rf /var/lib/{apt,dpkg,cache,log}/
-
-RUN groupadd -g 1000 coder && \
-    useradd -m -u 1000 -g 1000 -s /bin/bash coder && \
+# node 用户已经有 UID 1000 和 GID 1000，直接重命名为 coder
+RUN usermod -l coder node && \
+    groupmod -n coder node && \
+    usermod -d /home/coder -m coder && \
     echo 'coder ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/coder && \
     chmod 0440 /etc/sudoers.d/coder && \
     usermod -aG sudo coder
+
+USER coder
+RUN curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard
+
+USER root
+RUN apt-get clean autoclean && \
+    apt-get autoremove --yes && \
+    rm -rf /var/lib/{apt,dpkg,cache,log}/
 
 # 复制自定义启动脚本
 COPY start.sh /app/
