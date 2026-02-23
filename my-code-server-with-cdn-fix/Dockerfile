@@ -77,4 +77,6 @@ RUN chmod 755 /usr/share/code
 # Don't switch to coder yet - start.sh will handle it
 ENV HOME=/home/coder
 
+USER coder
+
 ENTRYPOINT ["/app/start.sh"]

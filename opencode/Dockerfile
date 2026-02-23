@@ -37,4 +37,6 @@ RUN groupadd -g 1000 coder && \
 
 ENV HOME=/home/coder
 
+USER coder
+
 ENTRYPOINT ["/app/start.sh"]

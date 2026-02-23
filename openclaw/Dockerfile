@@ -24,8 +24,12 @@ RUN apt-get clean autoclean && \
     apt-get autoremove --yes && \
     rm -rf /var/lib/{apt,dpkg,cache,log}/
 
-# 复制自定义启动脚本
-COPY start.sh /app/
-RUN chmod +x /app/start.sh
+# 复制自定义启动脚本并设置所有权
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh && \
+    chown coder:coder /app/start.sh
+
+# 切换到coder用户启动
+USER coder
 
 ENTRYPOINT ["/app/start.sh"]
