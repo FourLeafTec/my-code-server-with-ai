@@ -11,9 +11,6 @@ USER_HOME="/home/coder"
 CONFIG_DIR="$USER_HOME/.openclaw"
 CONFIG_FILE="$CONFIG_DIR/config.json"
 
-# Add /usr/sbin to PATH for gosu
-export PATH="/home/coder/.npm-global/bin:/usr/local/bin:/usr/sbin:$PATH"
-
 # =============================================================================
 # UID/GID handling
 # =============================================================================
@@ -62,6 +59,9 @@ if [ -n "$PGID" ]; then
     GOSU_GROUP="$PGID_GROUP"
   fi
 fi
+
+# Add /usr/local/openclaw/bin to PATH for openclaw
+export PATH="/usr/local/openclaw/bin:/home/coder/.npm-global/bin:/usr/local/bin:/usr/sbin:$PATH"
 
 # =============================================================================
 # Network configuration
@@ -122,11 +122,11 @@ generate_config() {
     
     mkdir -p "$CONFIG_DIR"
     
-    cat > "$CONFIG_FILE" << 'CONFIG_EOF'
+    cat > "$CONFIG_FILE" << CONFIG_EOF
 {
   "gateway": {
     "mode": "local",
-    "bind": "$OPENCLAW_HOST",
+    "bind": "lan",
     "port": $OPENCLAW_PORT,
     "auth": {
       "mode": "token",
@@ -159,22 +159,22 @@ update_with_openclaw_config() {
     
     if [ "$OPENCLAW_PORT" != "$DEFAULT_PORT" ]; then
         log "Updating gateway.port to $OPENCLAW_PORT"
-        openclaw config set gateway.port $OPENCLAW_PORT 2>/dev/null || \\
-        openclaw config --set gateway.port=$OPENCLAW_PORT 2>/dev/null || \\
+        openclaw config set gateway.port $OPENCLAW_PORT 2>/dev/null || \
+        openclaw config --set gateway.port=$OPENCLAW_PORT 2>/dev/null || \
         log "Failed to update gateway.port via CLI"
     fi
     
     if [ "$OPENCLAW_HOST" != "$DEFAULT_HOST" ]; then
         log "Updating gateway.bind to $OPENCLAW_HOST"
-        openclaw config set gateway.bind $OPENCLAW_HOST 2>/dev/null || \\
-        openclaw config --set gateway.bind=$OPENCLAW_HOST 2>/dev/null || \\
+        openclaw config set gateway.bind $OPENCLAW_HOST 2>/dev/null || \
+        openclaw config --set gateway.bind=$OPENCLAW_HOST 2>/dev/null || \
         log "Failed to update gateway.bind via CLI"
     fi
     
     if [ -n "$OPENCLAW_GATEWAY_TOKEN" ]; then
         log "Updating gateway.auth.token"
-        openclaw config set gateway.auth.token $OPENCLAW_GATEWAY_TOKEN 2>/dev/null || \\
-        openclaw config --set gateway.auth.token=$OPENCLAW_GATEWAY_TOKEN 2>/dev/null || \\
+        openclaw config set gateway.auth.token $OPENCLAW_GATEWAY_TOKEN 2>/dev/null || \
+        openclaw config --set gateway.auth.token=$OPENCLAW_GATEWAY_TOKEN 2>/dev/null || \
         log "Failed to update gateway.auth.token via CLI"
     fi
     
@@ -208,4 +208,4 @@ main "$@"
 export OPENCLAW_CONFIG_PATH="$CONFIG_FILE"
 
 # Start OpenClaw gateway using openclaw command
-exec /usr/sbin/gosu "$USERNAME:$GOSU_GROUP" /home/coder/.npm-global/bin/openclaw gateway
+exec /usr/sbin/gosu "$USERNAME:$GOSU_GROUP" /usr/local/openclaw/bin/openclaw gateway

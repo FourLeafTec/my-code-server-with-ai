@@ -17,8 +17,9 @@ RUN usermod -l coder node && \
     chmod 0440 /etc/sudoers.d/coder && \
     usermod -aG sudo coder
 
-USER coder
-RUN curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard
+# Install OpenCLAW to /usr/local/openclaw using root
+USER root
+RUN curl -fsSL https://openclaw.ai/install-cli.sh | bash -s -- --prefix /usr/local/openclaw --no-onboard
 
 USER root
 RUN apt-get clean autoclean && \
