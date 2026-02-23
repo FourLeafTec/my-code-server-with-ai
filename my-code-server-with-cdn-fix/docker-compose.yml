@@ -13,10 +13,9 @@ services:
       - HOST=${HOST:-0.0.0.0}
       - USE_CDN_PROXY=${USE_CDN_PROXY:-false}
       - CDN_PROXY_HOST=${CDN_PROXY_HOST:-}
-      - USERNAME=${USERNAME:-vscodeuser}
       - PUID=${PUID:-1000}
       - PGID=${PGID:-998}
     volumes:
-      - "${DATA_DIR:-./data}:/home/${USERNAME:-vscodeuser}/"
+      - "${DATA_DIR:-./data}:/home/coder/"
     init: true
     restart: unless-stopped

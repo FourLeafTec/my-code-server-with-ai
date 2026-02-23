@@ -49,7 +49,6 @@ docker run -d -p 8585:8585 -e TOKEN=yourtoken my-code-server-with-cdn-fix:main
 | `CLI_DATA_DIR` | CLI 元数据目录 | - |
 | `USE_CDN_PROXY` | 启用 CDN 代理模式 | `false` |
 | `CDN_PROXY_HOST` | CDN 代理主机（USE_CDN_PROXY=true 时必需） | - |
-| `USERNAME` | 容器用户名 | `vscodeuser` |
 
 ## CDN 代理
 
@@ -144,7 +143,7 @@ docker run -d -p 8585:8585 \
   -e TOKEN=yourtoken \
   -e PUID=$(id -u) \
   -e PGID=$(id -g) \
-  -v /path/to/data:/home/vscodeuser \
+  -v /path/to/data:/home/coder \
   my-code-server-with-cdn-fix:main
 ```
 

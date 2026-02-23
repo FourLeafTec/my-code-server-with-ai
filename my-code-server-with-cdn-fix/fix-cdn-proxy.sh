@@ -21,8 +21,8 @@
 # Author: Auto-generated for my-code-server-with-cdn-fix
 ################################################################################
 
-USERNAME=${USERNAME:-vscodeuser}
-USER_HOME="/home/$USERNAME"
+USERNAME=${USERNAME:-coder}
+USER_HOME="/home/coder"
 
 set -e
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-USERNAME=${USERNAME:-opencodeuser}
-USER_HOME="/home/$USERNAME"
+USERNAME=${USERNAME:-coder}
+USER_HOME="/home/coder"
 
 if [ -n "$PUID" ] || [ -n "$PGID" ]; then
   CURRENT_UID=$(id -u "$USERNAME")

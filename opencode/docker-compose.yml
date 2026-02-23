@@ -15,6 +15,6 @@ services:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-998}
     volumes:
-      - "${DATA_DIR:-./data}:/home/opencodeuser/"
+      - "${DATA_DIR:-./data}:/home/coder/"
     init: true
     restart: unless-stopped

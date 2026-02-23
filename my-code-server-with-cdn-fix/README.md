@@ -49,7 +49,6 @@ For the complete setup with AI assistants, use the [../code-server-with-ai](../c
 | `CLI_DATA_DIR` | CLI metadata directory | - |
 | `USE_CDN_PROXY` | Enable CDN proxy mode | `false` |
 | `CDN_PROXY_HOST` | CDN proxy host (required when USE_CDN_PROXY=true) | - |
-| `USERNAME` | Container username | `vscodeuser` |
 
 ## CDN Proxy
 
@@ -144,7 +143,7 @@ docker run -d -p 8585:8585 \
   -e TOKEN=yourtoken \
   -e PUID=$(id -u) \
   -e PGID=$(id -g) \
-  -v /path/to/data:/home/vscodeuser \
+  -v /path/to/data:/home/coder \
   my-code-server-with-cdn-fix:main
 ```
 

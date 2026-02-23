@@ -10,23 +10,20 @@ services:
       # 网络配置
       - OPENCLAW_PORT=${OPENCLAW_PORT:-18789}
       - OPENCLAW_HOST=${OPENCLAW_HOST:-0.0.0.0}
-      
+
       # 认证配置
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}
       - OPENCLAW_TRUSTED_PROXIES=${OPENCLAW_TRUSTED_PROXIES}
-      
-      # 用户配置
-      - USERNAME=${USERNAME:-node}
-    
+
     ports:
       - "${OPENCLAW_HOST_PORT:-18789}:${OPENCLAW_PORT:-18789}"
-    
+
     volumes:
       # 数据持久化
-      - ${DATA_DIR:-./data}:/home/node
-      
+      - ${DATA_DIR:-./data}:/home/coder
+
       # 配置持久化
-      - ${CONFIG_DIR:-./config}:/home/node/.openclaw
+      - ${CONFIG_DIR:-./config}:/home/coder/.openclaw
       
       # Workspace 共享
       - ${WORKSPACE_DIR:-./workspace}:/workspace

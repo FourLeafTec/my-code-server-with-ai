@@ -13,11 +13,10 @@ services:
       - HOST=${HOST:-0.0.0.0}
       - USE_CDN_PROXY=${USE_CDN_PROXY:-false}
       - CDN_PROXY_HOST=${CDN_PROXY_HOST}
-      - USERNAME=${USERNAME:-vscodeuser}
       - PUID=${PUID:-1000}
       - PGID=${PGID:-998}
     volumes:
-      - "${DATA_DIR:-/home/ubuntu/appdata/my-code-server-with-cdn-fix}:/home/${USERNAME:-vscodeuser}/"
+      - "${DATA_DIR:-/home/ubuntu/appdata/my-code-server-with-cdn-fix}:/home/coder/"
     init: true
     networks:
       - vscode-server-network

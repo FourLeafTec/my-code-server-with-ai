@@ -2,8 +2,8 @@
 
 echo "my-code-server debian container"
 
-USERNAME=${USERNAME:-vscodeuser}
-USER_HOME="/home/$USERNAME"
+USERNAME=${USERNAME:-coder}
+USER_HOME="/home/coder"
 
 if [ -d "$USER_HOME" ]; then
     current_owner=$(stat -c %U:%G "$USER_HOME" 2>/dev/null || stat -f %u:%g "$USER_HOME" 2>/dev/null)

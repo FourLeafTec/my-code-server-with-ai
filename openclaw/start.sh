@@ -6,8 +6,8 @@
 # 用户配置
 # =============================================================================
 
-USERNAME=${USERNAME:-node}
-USER_HOME="/home/$USERNAME"
+USERNAME=${USERNAME:-coder}
+USER_HOME="/home/coder"
 CONFIG_DIR="$USER_HOME/.openclaw"
 CONFIG_FILE="$CONFIG_DIR/config.json"
 
