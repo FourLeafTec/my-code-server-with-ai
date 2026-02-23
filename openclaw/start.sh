@@ -11,6 +11,12 @@ USER_HOME="/home/coder"
 CONFIG_DIR="$USER_HOME/.openclaw"
 CONFIG_FILE="$CONFIG_DIR/config.json"
 
+# 导出配置路径（官方命令可能需要）
+export OPENCLAW_CONFIG_PATH="$CONFIG_FILE"
+
+# 添加 npm global bin 到 PATH (openclaw 安装路径)
+export PATH="$HOME/.npm-global/bin:$PATH"
+
 # =============================================================================
 # 网络配置
 # =============================================================================
@@ -42,7 +48,6 @@ log_config() {
     log "Config Path: $CONFIG_FILE"
     log "User: $USERNAME"
     log "Home: $USER_HOME"
-    log "Host: $OPENCLAW_HOST"
     log "Port: $OPENCLAW_PORT"
     echo "========================================="
 }
@@ -71,12 +76,12 @@ generate_config() {
     # 确保目录存在
     mkdir -p "$CONFIG_DIR"
     
-    # 生成新配置
+    # 生成新配置（使用 loopback 作为默认 bind 值）
     cat > "$CONFIG_FILE" << CONFIG_EOF
 {
   "gateway": {
     "mode": "local",
-    "bind": "$OPENCLAW_HOST",
+    "bind": "loopback",
     "port": $OPENCLAW_PORT,
     "auth": {
       "mode": "token",
@@ -152,18 +157,20 @@ update_with_openclaw_config() {
 
 main() {
     log_config
-    
-    # 确保目录存在
-    mkdir -p "$CONFIG_DIR"
-    
-    # 处理配置生成/更新逻辑
-    if check_config; then
-        # 配置不存在，生成新配置
+
+    # 强制重新生成配置
+    if [ "$FORCE_REGENERATE_CONFIG" = "true" ]; then
+        log "FORCE_REGENERATE_CONFIG=true, regenerating configuration..."
         generate_config
-    else
-        # 配置存在，尝试使用 openclaw config set 更新
-        log "Configuration exists, attempting to update using 'openclaw config set' command..."
+        return 0
+    fi
+
+    # 配置存在时更新，不存在时生成
+    if check_config; then
+        log "Configuration exists, updating via openclaw config set..."
         update_with_openclaw_config
+    else
+        generate_config
     fi
 }
 
@@ -173,10 +180,5 @@ main() {
 
 main "$@"
 
-# 导出配置路径（官方命令可能需要）
-export OPENCLAW_CONFIG_PATH="$CONFIG_FILE"
-
-# 启动 OpenClaw（让官方 CMD 启动）
-# 如果 start.sh 的配置更新失败，官方命令会读取现有配置
-# 如果更新成功，官方命令会读取更新后的配置
+# 启动 OpenClaw
 exec openclaw gateway
