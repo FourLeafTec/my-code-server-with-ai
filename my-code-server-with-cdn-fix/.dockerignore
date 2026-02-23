@@ -9,6 +9,7 @@
 # Scripts (except start.sh)
 *.sh
 !start.sh
+!fix-cdn-proxy.sh
 
 # Docker
 docker-compose.yml

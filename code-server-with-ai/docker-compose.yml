@@ -2,7 +2,9 @@ services:
   vscode-server:
     container_name: ${CONTAINER_NAME:-my-code-server-with-cdn-fix}
     image: my-code-server-with-cdn-fix:main
-    build: ../my-code-server-with-cdn-fix
+    build: 
+      context: ../my-code-server-with-cdn-fix
+      dockerfile: Dockerfile
     ports:
       - "${HOST_PORT:-8585}:${CONTAINER_PORT:-8585}"
     environment:

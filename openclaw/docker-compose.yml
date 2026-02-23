@@ -1,20 +1,42 @@
 services:
   openclaw:
     container_name: ${CONTAINER_NAME:-openclaw}
-    image: ${IMAGE_NAME:-openclaw:latest}
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "${HOST_PORT:-18789}:${OPENCLAW_PORT:-18789}"
+    image: ${IMAGE_NAME:-openclaw:latest}
+    
     environment:
+      # 网络配置
       - OPENCLAW_PORT=${OPENCLAW_PORT:-18789}
       - OPENCLAW_HOST=${OPENCLAW_HOST:-0.0.0.0}
-      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN:-}
-      - OPENCLAW_TRUSTED_PROXIES=${OPENCLAW_TRUSTED_PROXIES:-}
-      - PUID=${PUID:-1000}
-      - PGID=${PGID:-998}
+      
+      # 认证配置
+      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}
+      - OPENCLAW_TRUSTED_PROXIES=${OPENCLAW_TRUSTED_PROXIES}
+      
+      # 用户配置
+      - USERNAME=${USERNAME:-node}
+    
+    ports:
+      - "${OPENCLAW_HOST_PORT:-18789}:${OPENCLAW_PORT:-18789}"
+    
     volumes:
-      - "${DATA_DIR:-./data}:/home/openclawuser/"
-    init: true
+      # 数据持久化
+      - ${DATA_DIR:-./data}:/home/node
+      
+      # 配置持久化
+      - ${CONFIG_DIR:-./config}:/home/node/.openclaw
+      
+      # Workspace 共享
+      - ${WORKSPACE_DIR:-./workspace}:/workspace
+    
     restart: unless-stopped
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${OPENCLAW_PORT:-18789}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
