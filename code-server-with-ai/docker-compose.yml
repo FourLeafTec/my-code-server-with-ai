@@ -1,7 +1,7 @@
 services:
   vscode-server:
     container_name: ${CONTAINER_NAME:-my-code-server-with-cdn-fix}
-    image: my-code-server-with-cdn-fix:main
+    image: my-code-server-with-cdn-fix:latest
     build: 
       context: ../my-code-server-with-cdn-fix
       dockerfile: Dockerfile
