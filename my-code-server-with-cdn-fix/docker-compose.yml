@@ -14,7 +14,8 @@ services:
       - USE_CDN_PROXY=${USE_CDN_PROXY:-false}
       - CDN_PROXY_HOST=${CDN_PROXY_HOST:-}
       - PUID=${PUID:-1000}
-      - PGID=${PGID:-998}
+      - PGID=${PGID:-1000}
+      - EXTRA_GID=${EXTRA_GID:-}
     volumes:
       - "${DATA_DIR:-./data}:/home/coder/"
     init: true

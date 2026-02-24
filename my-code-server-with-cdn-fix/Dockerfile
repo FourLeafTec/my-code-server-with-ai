@@ -24,7 +24,6 @@ RUN apt-get update && apt-get install -y \
     curl \
     gnupg2 \
     sudo \
-    gosu \
     nano \
     git \
     unzip \

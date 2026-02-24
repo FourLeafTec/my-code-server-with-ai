@@ -128,12 +128,12 @@ fi
 
 echo "Starting VSCode Server with command: $CMD"
 
-GOSU_GROUP="$USERNAME"
-if [ -n "$PGID" ]; then
-  PGID_GROUP=$(getent group $PGID | cut -d: -f1)
-  if [ -n "$PGID_GROUP" ] && [ "$PGID_GROUP" != "$USERNAME" ]; then
-    GOSU_GROUP="$PGID_GROUP"
-  fi
+SETUID=$(id -u "$USERNAME")
+SETGID=$(id -g "$USERNAME")
+SETGROUPS="--clear-groups"
+
+if [ -n "$EXTRA_GID" ]; then
+  SETGROUPS="--groups=$EXTRA_GID"
 fi
 
-exec gosu "$USERNAME:$GOSU_GROUP" $CMD
+exec setpriv --reuid=$SETUID --regid=$SETGID $SETGROUPS -- $CMD
