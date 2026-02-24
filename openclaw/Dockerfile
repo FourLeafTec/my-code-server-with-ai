@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     gnupg2 \
     sudo \
-    gosu \
+    git \
     nano \
     && rm -rf /var/lib/{apt,dpkg,cache,log}/
 
@@ -31,7 +31,7 @@ COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh && \
     chown coder:coder /app/start.sh
 
-# ENTRYPOINT以root用户启动，start.sh内部使用gosu切换到coder用户
+# ENTRYPOINT以root用户启动，start.sh切换到coder用户
 USER root
 
 ENTRYPOINT ["/app/start.sh"]

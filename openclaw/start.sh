@@ -52,14 +52,6 @@ else
   echo "Using default UID:GID $(id -u "$USERNAME"):$(id -g "$USERNAME")"
 fi
 
-GOSU_GROUP="$USERNAME"
-if [ -n "$PGID" ]; then
-  PGID_GROUP=$(getent group $PGID | cut -d: -f1)
-  if [ -n "$PGID_GROUP" ] && [ "$PGID_GROUP" != "$USERNAME" ]; then
-    GOSU_GROUP="$PGID_GROUP"
-  fi
-fi
-
 # Add /usr/local/openclaw/bin to PATH for openclaw
 export PATH="/usr/local/openclaw/bin:/home/coder/.npm-global/bin:/usr/local/bin:/usr/sbin:$PATH"
 
@@ -207,5 +199,12 @@ main "$@"
 # Export config path (official command may need it)
 export OPENCLAW_CONFIG_PATH="$CONFIG_FILE"
 
-# Start OpenClaw gateway using openclaw command
-exec /usr/sbin/gosu "$USERNAME:$GOSU_GROUP" /usr/local/openclaw/bin/openclaw gateway
+SETUID=$(id -u "$USERNAME")
+SETGID=$(id -g "$USERNAME")
+SETGROUPS="--clear-groups"
+
+if [ -n "$EXTRA_GID" ]; then
+  SETGROUPS="--groups=$EXTRA_GID"
+fi
+
+exec setpriv --reuid=$SETUID --regid=$SETGID $SETGROUPS -- /usr/local/openclaw/bin/openclaw gateway
