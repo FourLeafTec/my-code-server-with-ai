@@ -59,12 +59,12 @@ fi
 export OPENCODE_SERVER_PASSWORD
 export OPENCODE_SERVER_USERNAME
 
-GOSU_GROUP="$USERNAME"
-if [ -n "$PGID" ]; then
-  PGID_GROUP=$(getent group $PGID | cut -d: -f1)
-  if [ -n "$PGID_GROUP" ] && [ "$PGID_GROUP" != "$USERNAME" ]; then
-    GOSU_GROUP="$PGID_GROUP"
-  fi
+SETUID=$(id -u "$USERNAME")
+SETGID=$(id -g "$USERNAME")
+SETGROUPS="--clear-groups"
+
+if [ -n "$EXTRA_GID" ]; then
+  SETGROUPS="--groups=$EXTRA_GID"
 fi
 
-exec gosu "$USERNAME:$GOSU_GROUP" opencode serve --hostname "$OPENCODE_HOST" --port "$OPENCODE_PORT"
+exec setpriv --reuid=$SETUID --regid=$SETGID $SETGROUPS -- opencode serve --hostname "$OPENCODE_HOST" --port "$OPENCODE_PORT"

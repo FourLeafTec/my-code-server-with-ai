@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     gnupg2 \
     sudo \
-    gosu \
+    git \
     nano \
     && rm -rf /var/lib/{apt,dpkg,cache,log}/
 
