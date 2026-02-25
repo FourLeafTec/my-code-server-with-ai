@@ -203,7 +203,7 @@ CLI_WEB_DIR="$USER_HOME/.vscode/cli/serve-web"
 HASH_DIR=$(find "$CLI_WEB_DIR" -maxdepth 1 -type d -name '[a-f0-9]*' 2>/dev/null | head -1)
 
 if [ -n "$HASH_DIR" ] && [ -d "$HASH_DIR" ]; then
-    echo "Found dynamic目录: $(basename "$HASH_DIR")"
+    echo "Found dynamic path: $(basename "$HASH_DIR")"
     echo ""
 
     # Ensure write permissions
@@ -215,10 +215,10 @@ if [ -n "$HASH_DIR" ] && [ -d "$HASH_DIR" ]; then
     echo "Searching for JavaScript files containing CDN URLs..."
     echo ""
 
-    # Find all JS files containing CDN URLs, excluding source-map references
+    # Find all JS & HTML files containing CDN URLs, excluding source-map references
     # Store in temp file to avoid subshell issue with pipes
     TEMP_FILE_LIST=$(mktemp)
-    find "$HASH_DIR" -type f -name "*.js" 2>/dev/null | while IFS= read -r file; do
+    find "$HASH_DIR" -type f -name "*.js" -o -name "*.html" 2>/dev/null | while IFS= read -r file; do
         if grep -v "sourceMappingURL" "$file" 2>/dev/null | grep -q "vscode-cdn\.net\|vscode-unpkg\.net"; then
             echo "$file"
         fi
@@ -305,11 +305,11 @@ if [ -n "$HASH_DIR" ] && [ -d "$HASH_DIR" ]; then
         echo "   CDN URLs replaced: $CLI_PRODUCT_URLS_REPLACED"
     fi
     
-    # Patch all JavaScript files in CLI directory
+    # Patch all JavaScript & HTML files in CLI directory
     echo ""
-    echo "Patching all JavaScript files in CLI directory..."
+    echo "Patching all JavaScript & HTML files in CLI directory..."
     
-    find "$HASH_DIR" -name "*.js" -type f -exec grep -l "vscode-cdn\.net\|vscode-unpkg\.net" {} \; 2>/dev/null | while IFS= read -r file; do
+    find "$HASH_DIR" -name "*.js" -o -name "*.html" -type f -exec grep -l "vscode-cdn\.net\|vscode-unpkg\.net" {} \; 2>/dev/null | while IFS= read -r file; do
         if [ -z "$file" ]; then
             continue
         fi
@@ -372,7 +372,7 @@ fi
 
 if [ -n "$HASH_DIR" ] && [ -d "$HASH_DIR" ]; then
     # Count remaining CDN URLs in CLI files (excluding source-map)
-    CLI_FILES_CDN_COUNT=$(find "$HASH_DIR" -type f -name "*.js" -exec grep -v "sourceMappingURL" {} \; 2>/dev/null | grep -c 'vscode-cdn\.net\|vscode-unpkg\.net' || true)
+    CLI_FILES_CDN_COUNT=$(find "$HASH_DIR" -type f -name "*.js" -o -name "*.html" -exec grep -v "sourceMappingURL" {} \; 2>/dev/null | grep -c 'vscode-cdn\.net\|vscode-unpkg\.net' || true)
     CLI_FILES_CDN_COUNT=${CLI_FILES_CDN_COUNT:-0}
 
     # Check CLI product.json
@@ -433,22 +433,6 @@ echo "Your CDN proxy host is: $CDN_PROXY_HOST"
 echo ""
 echo "Required Nginx configuration on $CDN_PROXY_HOST:"
 echo ""
-echo "  location /proxy-unpkg/ {"
-echo "      rewrite ^/proxy-unpkg/(.*)$ /\$1 break;"
-echo "      proxy_pass https://www.vscode-unpkg.net;"
-echo "      proxy_set_header Host www.vscode-unpkg.net;"
-echo "      proxy_ssl_server_name on;"
-echo "      proxy_ssl_protocols TLSv1.2 TLSv1.3;"
-echo "  }"
-echo ""
-echo "  location /proxy-cdn/ {"
-echo "      rewrite ^/proxy-cdn/(.*)$ /\$1 break;"
-echo "      proxy_pass https://main.vscode-cdn.net;"
-echo "      proxy_set_header Host main.vscode-cdn.net;"
-echo "      proxy_ssl_server_name on;"
-echo "      proxy_ssl_protocols TLSv1.2 TLSv1.3;"
-echo "  }"
-echo ""
 echo "=========================================="
 echo ""
 echo "IMPORTANT: Configure your reverse proxy (e.g., Nginx) to forward"
@@ -457,28 +441,20 @@ echo ""
 echo "Required Nginx configuration:"
 echo ""
 echo "  location /proxy-unpkg/ {"
-echo "      # 将请求转发到目标服务器"
-echo "      # 注意：末尾的 / 很重要，它会把 "/proxy-unpkg/" 替换为 "/""
 echo "      proxy_pass https://www.vscode-unpkg.net/;"
-echo "      # 常用代理请求头设置"
 echo "      proxy_set_header Host www.vscode-unpkg.net;"
 echo "      proxy_set_header X-Real-IP $remote_addr;"
 echo "      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;"
 echo "      proxy_set_header X-Forwarded-Proto $scheme;"
-echo "      # 解决可能出现的重定向问题"
 echo "      proxy_redirect off;"
 echo "  }"
 echo ""
 echo "  location /proxy-cdn/ {"
-echo "      # 将请求转发到目标服务器"
-echo "      # 注意：末尾的 / 很重要，它会把 "/proxy-cdn/" 替换为 "/""
 echo "      proxy_pass https://main.vscode-cdn.net/;"
-echo "      # 常用代理请求头设置"
 echo "      proxy_set_header Host main.vscode-cdn.net;"
 echo "      proxy_set_header X-Real-IP $remote_addr;"
 echo "      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;"
 echo "      proxy_set_header X-Forwarded-Proto $scheme;"
-echo "      # 解决可能出现的重定向问题"
 echo "      proxy_redirect off;"
 echo "  }"
 echo ""
