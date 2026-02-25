@@ -8,6 +8,7 @@
 
 USERNAME=${USERNAME:-coder}
 USER_HOME="/home/coder"
+HOME="$USER_HOME"
 CONFIG_DIR="$USER_HOME/.openclaw"
 CONFIG_FILE="$CONFIG_DIR/config.json"
 
