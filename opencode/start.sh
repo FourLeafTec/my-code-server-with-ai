@@ -2,6 +2,7 @@
 
 USERNAME=${USERNAME:-coder}
 USER_HOME="/home/coder"
+HOME="$USER_HOME"
 
 if [ -n "$PUID" ] || [ -n "$PGID" ]; then
   CURRENT_UID=$(id -u "$USERNAME")

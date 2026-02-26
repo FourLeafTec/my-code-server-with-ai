@@ -54,7 +54,7 @@ else
 fi
 
 # Add /usr/local/openclaw/bin to PATH for openclaw
-export PATH="/usr/local/openclaw/bin:/home/coder/.npm-global/bin:/usr/local/bin:/usr/sbin:$PATH"
+export PATH="/usr/local/openclaw/bin:/usr/local/bin:/usr/sbin:$PATH"
 
 # =============================================================================
 # Network configuration
@@ -208,4 +208,4 @@ if [ -n "$EXTRA_GID" ]; then
   SETGROUPS="--groups=$EXTRA_GID"
 fi
 
-exec setpriv --reuid=$SETUID --regid=$SETGID $SETGROUPS -- /usr/local/openclaw/bin/openclaw gateway
+exec setpriv --reuid=$SETUID --regid=$SETGID $SETGROUPS -- openclaw gateway
