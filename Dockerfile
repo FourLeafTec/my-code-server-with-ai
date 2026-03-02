@@ -42,6 +42,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
     fi
 
 RUN npm install -g opencode-ai
+RUN npx oh-my-opencode install --no-tui --claude=no --gemini=no --copilot=no
 
 RUN curl -fsSL https://openclaw.ai/install-cli.sh | bash -s -- --prefix /usr/local/openclaw --no-onboard
 
