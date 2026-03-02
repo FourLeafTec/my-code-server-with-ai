@@ -1,0 +1,93 @@
+version: "0.5"
+
+log_level: info
+log_length: 3000
+
+environment:
+  - "HOME=/home/coder"
+  - "PUID=1000"
+  - "PGID=1000"
+
+shell:
+  shell_command: "bash"
+  shell_argument: "-c"
+
+processes:
+  vscode-server:
+    description: "VS Code Server - Browser-based code editor"
+    command: >
+      code serve-web
+      --host ${VSCODE_HOST:-0.0.0.0}
+      --port ${VSCODE_PORT:-8585}
+      --connection-token ${VSCODE_TOKEN:-}
+      --accept-server-license-terms
+      ${VSCODE_EXTRA_ARGS:-}
+    working_dir: "/home/coder"
+    environment:
+      - "PORT=${VSCODE_PORT:-8585}"
+      - "HOST=${VSCODE_HOST:-0.0.0.0}"
+      - "TOKEN=${VSCODE_TOKEN:-}"
+      - "USE_CDN_PROXY=${USE_CDN_PROXY:-false}"
+      - "CDN_PROXY_HOST=${CDN_PROXY_HOST:-}"
+      - "PUID=${PUID:-1000}"
+      - "PGID=${PGID:-1000}"
+    availability:
+      restart: "always"
+      backoff_seconds: 5
+    readiness_probe:
+      exec:
+        command: "curl -sf http://localhost:${VSCODE_PORT:-8585}/ || exit 0"
+      initial_delay_seconds: 10
+      period_seconds: 10
+      timeout_seconds: 5
+    ports:
+      - "${VSCODE_PORT:-8585}:${VSCODE_PORT:-8585}"
+
+  opencode:
+    description: "OpenCode AI - AI coding assistant with TUI"
+    command: >
+      opencode serve
+      --hostname ${OPENCODE_HOST:-0.0.0.0}
+      --port ${OPENCODE_PORT:-4096}
+    working_dir: "/home/coder"
+    environment:
+      - "OPENCODE_PORT=${OPENCODE_PORT:-4096}"
+      - "OPENCODE_HOST=${OPENCODE_HOST:-0.0.0.0}"
+      - "OPENCODE_SERVER_USERNAME=${OPENCODE_SERVER_USERNAME:-opencode}"
+      - "OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD:-}"
+      - "PUID=${PUID:-1000}"
+      - "PGID=${PGID:-1000}"
+    availability:
+      restart: "always"
+      backoff_seconds: 5
+    readiness_probe:
+      exec:
+        command: "curl -sf http://localhost:${OPENCODE_PORT:-4096}/ || exit 0"
+      initial_delay_seconds: 5
+      period_seconds: 10
+      timeout_seconds: 5
+    ports:
+      - "${OPENCODE_PORT:-4096}:${OPENCODE_PORT:-4096}"
+
+  openclaw:
+    description: "OpenClaw Gateway - AI assistant with multi-channel support"
+    command: >
+      openclaw gateway
+    working_dir: "/home/coder"
+    environment:
+      - "OPENCLAW_PORT=${OPENCLAW_PORT:-18789}"
+      - "OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN:-}"
+      - "OPENCLAW_CONFIG_PATH=/home/coder/.openclaw/config.json"
+      - "PUID=${PUID:-1000}"
+      - "PGID=${PGID:-1000}"
+    availability:
+      restart: "always"
+      backoff_seconds: 5
+    readiness_probe:
+      exec:
+        command: "curl -sf http://localhost:${OPENCLAW_PORT:-18789}/health || exit 0"
+      initial_delay_seconds: 15
+      period_seconds: 10
+      timeout_seconds: 5
+    ports:
+      - "${OPENCLAW_PORT:-18789}:${OPENCLAW_PORT:-18789}"
