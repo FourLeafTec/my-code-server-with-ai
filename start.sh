@@ -74,6 +74,11 @@ fi
 
 SETUID=$(id -u "$USERNAME")
 SETGID=$(id -g "$USERNAME")
+SETGROUPS="--clear-groups"
+
+if [ -n "$EXTRA_GID" ]; then
+  SETGROUPS="--groups=$EXTRA_GID"
+fi
 
 echo "========================================="
 echo "Starting Process Compose..."
@@ -85,7 +90,7 @@ echo "========================================="
 
 export HOME="$USER_HOME"
 
-exec setpriv --reuid=$SETUID --regid=$SETGID --clear-groups -- \
+exec setpriv --reuid=$SETUID --regid=$SETGID $SETGROUPS -- \
   process-compose \
   -f "$PC_CONFIG" \
   up \
