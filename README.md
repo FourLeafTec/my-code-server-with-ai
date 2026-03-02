@@ -39,44 +39,45 @@ docker compose up -d --build
 
 ## Access Services
 
-| Service     | URL                  | Credentials              |
-|-------------|----------------------|-------------------------|
-| VS Code     | http://localhost:8585 | Token from .env         |
-| OpenCode    | http://localhost:4096 | Username/Password     |
-| OpenClaw    | http://localhost:18789 | Token from .env        |
+| Service  | URL                    | Credentials       |
+| -------- | ---------------------- | ----------------- |
+| VS Code  | http://localhost:8585  | Token from .env   |
+| OpenCode | http://localhost:4096  | Username/Password |
+| OpenClaw | http://localhost:18789 | Token from .env   |
 
 ## Environment Variables
 
 ### VS Code Server
-| Variable        | Description              | Default       |
-|-----------------|-------------------------|---------------|
-| VSCODE_HOST     | Bind address            | 0.0.0.0       |
-| VSCODE_PORT     | Port                    | 8585          |
-| VSCODE_TOKEN    | Connection token       | (none)        |
-| VSCODE_EXTRA_ARGS | Additional arguments  |               |
-| USE_CDN_PROXY   | Enable CDN proxy       | false         |
-| CDN_PROXY_HOST  | CDN proxy host          |               |
+| Variable          | Description          | Default |
+| ----------------- | -------------------- | ------- |
+| VSCODE_HOST       | Bind address         | 0.0.0.0 |
+| VSCODE_PORT       | Port                 | 8585    |
+| VSCODE_TOKEN      | Connection token     | (none)  |
+| VSCODE_EXTRA_ARGS | Additional arguments |         |
+| USE_CDN_PROXY     | Enable CDN proxy     | false   |
+| CDN_PROXY_HOST    | CDN proxy host       |         |
 
 ### OpenCode
-| Variable              | Description     | Default   |
-|-----------------------|-----------------|-----------|
-| OPENCODE_HOST         | Bind address    | 0.0.0.0   |
-| OPENCODE_PORT         | Port            | 4096      |
-| OPENCODE_SERVER_USERNAME | Username    | opencode  |
-| OPENCODE_SERVER_PASSWORD | Password     |           |
+| Variable                 | Description  | Default  |
+| ------------------------ | ------------ | -------- |
+| OPENCODE_HOST            | Bind address | 0.0.0.0  |
+| OPENCODE_PORT            | Port         | 4096     |
+| OPENCODE_SERVER_USERNAME | Username     | opencode |
+| OPENCODE_SERVER_PASSWORD | Password     |          |
 
 ### OpenClaw
-| Variable                | Description  | Default   |
-|-------------------------|--------------|-----------|
-| OPENCLAW_PORT           | Port         | 18789     |
-| OPENCLAW_GATEWAY_TOKEN  | Gateway token|           |
+| Variable               | Description   | Default |
+| ---------------------- | ------------- | ------- |
+| OPENCLAW_PORT          | Port          | 18789   |
+| OPENCLAW_GATEWAY_TOKEN | Gateway token |         |
 
 ### General
-| Variable  | Description        | Default |
-|-----------|--------------------|---------|
-| PUID      | User ID            | 1000    |
-| PGID      | Group ID           | 1000    |
-| DATA_DIR  | Data directory     | ./data  |
+| Variable  | Description    | Default |
+| --------- | -------------- | ------- |
+| PUID      | User ID        | 1000    |
+| PGID      | Group ID       | 1000    |
+| DATA_DIR  | Data directory | ./data  |
+| EXTRA_GID | Extra Group ID |         |
 
 ## Management Commands
 
@@ -95,10 +96,11 @@ docker compose exec code-server-with-ai sh  # Shell into container
 Once inside the container:
 
 ```bash
-process-compose -f /app/process-compose/process-compose.yaml up      # TUI mode
-process-compose -f /app/process-compose/process-compose.yaml up -D   # Detached
-process-compose -f /app/process-compose/process-compose.yaml down    # Stop all
-process-compose -f /app/process-compose/process-compose.yaml ps      # Show status
+process-compose attach                               # Attach
+process-compose -f /app/process-compose.yaml up      # TUI mode
+process-compose -f /app/process-compose.yaml up -D   # Detached
+process-compose -f /app/process-compose.yaml down    # Stop all
+process-compose -f /app/process-compose.yaml ps      # Show status
 ```
 
 ## Health Checks
@@ -119,7 +121,26 @@ USE_CDN_PROXY=true
 CDN_PROXY_HOST=your-proxy.domain.com
 ```
 
-See [../my-code-server-with-cdn-fix/README.md](../my-code-server-with-cdn-fix/README.md) for nginx configuration.
+Required Nginx configuration:
+```
+  location /proxy-unpkg/ {
+      proxy_pass https://www.vscode-unpkg.net/;
+      proxy_set_header Host www.vscode-unpkg.net;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_redirect off;
+  }
+
+  location /proxy-cdn/ {
+      proxy_pass https://main.vscode-cdn.net/;
+      proxy_set_header Host main.vscode-cdn.net;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_redirect off;
+  }
+```
 
 ## Building
 
@@ -149,53 +170,22 @@ Check logs:
 docker compose logs -f
 ```
 
-### Access a specific process log:
-```bash
-docker compose logs -f vscode-server
-docker compose logs -f opencode
-docker compose logs -f openclaw
-```
-
-### Restart a specific process
-
-```bash
-docker compose exec code-server-with-ai process-compose restart vscode-server
-```
-
-### Shell access
-
-```bash
-docker compose exec code-server-with-ai sh
-```
-
 ## Files
 
 ```
-process-compose/
-├── Dockerfile                 # Unified container image
-├── docker-compose.yml         # Docker Compose configuration
-├── process-compose.yaml       # Process Compose configuration
-├── start.sh                  # Container startup script
-├── .env.example              # Environment template
-└── README.md                 # This file
+Dockerfile                 # Unified container image
+docker-compose.yml         # Docker Compose configuration
+process-compose.yaml       # Process Compose configuration
+start.sh                  # Container startup script
+.env.example              # Environment template
+README.md                 # This file
 ```
 
-## Migration from Multi-Container
+## Quick Start
 
-1. Copy your data directory to the new location:
-   ```bash
-   cp -r ../my-code-server-with-cdn-fix/data ./data
-   ```
+1. Update environment variables in `.env`
 
-2. Update environment variables in `.env`
-
-3. Stop old containers:
-   ```bash
-   cd ../code-server-with-ai
-   docker compose down
-   ```
-
-4. Build and start new container:
+2. Build and start new container:
    ```bash
    cd ../process-compose
    docker compose up -d --build
