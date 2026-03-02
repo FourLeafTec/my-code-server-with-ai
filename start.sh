@@ -89,6 +89,8 @@ echo "OpenClaw:       ${OPENCLAW_PORT:-18789}"
 echo "========================================="
 
 export HOME="$USER_HOME"
+export NPM_CONFIG_PREFIX="$HOME/.npm-global"
+export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
 
 exec setpriv --reuid=$SETUID --regid=$SETGID $SETGROUPS -- \
   process-compose \
