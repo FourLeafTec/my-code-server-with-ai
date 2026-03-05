@@ -7,6 +7,7 @@ environment:
   - "HOME=/home/coder"
   - "PUID=1000"
   - "PGID=1000"
+  - "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/openclaw/bin:$PATH"
 
 shell:
   shell_command: "bash"
@@ -77,7 +78,6 @@ processes:
     environment:
       - "OPENCLAW_PORT=${OPENCLAW_PORT:-18789}"
       - "OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN:-}"
-      - "OPENCLAW_CONFIG_PATH=/home/coder/.openclaw/config.json"
       - "PUID=${PUID:-1000}"
       - "PGID=${PGID:-1000}"
     availability:

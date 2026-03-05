@@ -7,7 +7,7 @@ echo "========================================="
 
 USERNAME=${USERNAME:-coder}
 USER_HOME="/home/coder"
-CONFIG_DIR="$USER_HOME/.openclaw"
+OPENCLAW_CONFIG_DIR="$USER_HOME/.openclaw"
 PC_CONFIG="/app/process-compose.yaml"
 PC_SHORTCUTS="/home/coder/.config/process-compose"
 
@@ -48,12 +48,12 @@ if [ "$USE_CDN_PROXY" = "true" ] && [ -n "$CDN_PROXY_HOST" ]; then
   fi
 fi
 
-mkdir -p "$CONFIG_DIR"
+mkdir -p "$OPENCLAW_CONFIG_DIR"
 mkdir -p "$PC_SHORTCUTS"
 chown -R coder:coder "$USER_HOME"
-if [ ! -f "$CONFIG_DIR/config.json" ]; then
+if [ ! -f "$OPENCLAW_CONFIG_DIR/openclaw.json" ]; then
   echo "Creating OpenClaw configuration..."
-  cat > "$CONFIG_DIR/config.json" << EOF
+  cat > "$OPENCLAW_CONFIG_DIR/openclaw.json" << EOF
 {
   "gateway": {
     "mode": "local",
@@ -69,7 +69,7 @@ if [ ! -f "$CONFIG_DIR/config.json" ]; then
   }
 }
 EOF
-  chown -R coder:coder "$CONFIG_DIR"
+  chown -R coder:coder "$OPENCLAW_CONFIG_DIR"
 fi
 
 SETUID=$(id -u "$USERNAME")
